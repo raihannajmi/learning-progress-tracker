@@ -10,6 +10,7 @@ interface Props {
 	isOpen: boolean;
 	onClose: () => void;
 	defaultTopicId?: string;
+	defaultDurationMinutes?: number;
 }
 
 const SprintSchema = Yup.object().shape({
@@ -42,6 +43,7 @@ export const SprintModal: React.FC<Props> = ({
 	isOpen,
 	onClose,
 	defaultTopicId,
+	defaultDurationMinutes = 25,
 }) => {
 	const queryClient = useQueryClient();
 
@@ -116,7 +118,7 @@ export const SprintModal: React.FC<Props> = ({
 					enableReinitialize={true}
 					initialValues={{
 						topicId: defaultTopicId || "",
-						durationMinutes: 25,
+						durationMinutes: defaultDurationMinutes,
 						whatLearned: "",
 						whatPracticed: "",
 						confusingParts: "",

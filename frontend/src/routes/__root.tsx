@@ -9,10 +9,12 @@ import {
 } from "@tanstack/react-router";
 import type React from "react";
 import { useState } from "react";
+import { ActiveSessionBanner } from "../components/common/ActiveSessionBanner.js";
 import { SprintModal } from "../components/common/SprintModal.js";
 import { AppHeader } from "../components/layout/AppHeader.js";
 import { AppSidebar } from "../components/layout/AppSidebar.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { useTimerStore } from "../stores/timerStore.js";
 import appCss from "../styles.css?url";
 
 const queryClient = new QueryClient({
@@ -90,15 +92,30 @@ function NotFoundComponent() {
 
 function LayoutContainer({ children }: { children: React.ReactNode }) {
 	const { isAuthenticated, user } = useAuthStore();
+	const {
+		isReflectionModalOpen,
+		selectedTopicId,
+		reflectionDurationMinutes,
+		openReflectionModal,
+		closeReflectionModal,
+	} = useTimerStore();
+
 	const routerState = useRouterState();
 	const isLoginPage = routerState.location.pathname === "/";
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const [isMobileOpen, setIsMobileOpen] = useState(false);
-	const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
+	const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
 	if (!isAuthenticated || !user || isLoginPage) {
 		return <main className="min-h-screen bg-[#F8FAFC]">{children}</main>;
 	}
+
+	const isModalOpen = isManualModalOpen || isReflectionModalOpen;
+
+	const handleCloseModal = () => {
+		setIsManualModalOpen(false);
+		closeReflectionModal();
+	};
 
 	return (
 		<div className="min-h-screen bg-[#F8FAFC] flex">
@@ -113,10 +130,14 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 					isCollapsed ? "lg:pl-18" : "lg:pl-60"
 				}`}
 			>
+				{user.role === "STUDENT" && <ActiveSessionBanner />}
 				<AppHeader
 					isCollapsed={isCollapsed}
 					setIsMobileOpen={setIsMobileOpen}
-					onOpenSprintModal={() => setIsSprintModalOpen(true)}
+					onOpenSprintModal={() => {
+						openReflectionModal(null, 25);
+						setIsManualModalOpen(true);
+					}}
 				/>
 				<main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
 					{children}
@@ -124,8 +145,10 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 			</div>
 
 			<SprintModal
-				isOpen={isSprintModalOpen}
-				onClose={() => setIsSprintModalOpen(false)}
+				isOpen={isModalOpen}
+				onClose={handleCloseModal}
+				defaultTopicId={selectedTopicId || undefined}
+				defaultDurationMinutes={reflectionDurationMinutes}
 			/>
 		</div>
 	);

@@ -1,29 +1,50 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Flame, Pause, Play, Plus, RotateCcw, Timer } from "lucide-react";
+import {
+	CheckCircle2,
+	Flame,
+	Pause,
+	Play,
+	Plus,
+	Timer,
+	XCircle,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
-import { SprintModal } from "../components/common/SprintModal.js";
 import { StatCard } from "../components/common/StatCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
-import type { LearningSprint } from "../types/index.js";
+import { useTimerStore } from "../stores/timerStore.js";
+import type { LearningSprint, RoadmapWeek } from "../types/index.js";
 
 export const Route = createFileRoute("/sprints")({ component: SprintsPage });
 
 function SprintsPage() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
-	const [isModalOpen, setIsModalOpen] = useState(false);
+
+	const {
+		status,
+		targetSeconds,
+		elapsedSeconds,
+		selectedTopicTitle,
+		startSession,
+		pauseSession,
+		resumeSession,
+		tick,
+		finishEarly,
+		abandonSession,
+		openReflectionModal,
+	} = useTimerStore();
+
+	// Local state for setting up next session
+	const [setupTopicId, setSetupTopicId] = useState<string>("");
+	const [setupDurationMinutes, setSetupDurationMinutes] = useState<number>(25);
+
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
-
-	// 25-Minute Focus Timer State
-	const [timerSeconds, setTimerSeconds] = useState(25 * 60);
-	const [isTimerRunning, setIsTimerRunning] = useState(false);
-	const [_completedTimerSessions, setCompletedTimerSessions] = useState(0);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -33,33 +54,37 @@ function SprintsPage() {
 		}
 	}, [isAuthenticated, user, navigate]);
 
-	// Pomodoro Interval
+	// Tick timer in background while page is mounted
 	useEffect(() => {
-		let interval: any = null;
-		if (isTimerRunning && timerSeconds > 0) {
-			interval = setInterval(() => {
-				setTimerSeconds((prev) => prev - 1);
-			}, 1000);
-		} else if (timerSeconds === 0 && isTimerRunning) {
-			setIsTimerRunning(false);
-			setCompletedTimerSessions((prev) => prev + 1);
-			setIsModalOpen(true);
-		}
+		if (status !== "RUNNING") return;
+
+		const interval = setInterval(() => {
+			tick();
+		}, 1000);
+
 		return () => clearInterval(interval);
-	}, [isTimerRunning, timerSeconds]);
+	}, [status, tick]);
 
-	const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
-	const resetTimer = () => {
-		setIsTimerRunning(false);
-		setTimerSeconds(25 * 60);
-	};
+	// Fetch Roadmap for topic picker
+	const { data: roadmapWeeks } = useQuery<RoadmapWeek[]>({
+		queryKey: ["roadmap"],
+		queryFn: async () => {
+			const res: any = await api.get("/roadmap");
+			return res.data;
+		},
+		enabled: isAuthenticated,
+	});
 
-	const formatTimer = (seconds: number) => {
-		const mins = Math.floor(seconds / 60);
-		const secs = seconds % 60;
-		return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-	};
+	const allTopics =
+		roadmapWeeks?.flatMap((w) =>
+			w.topics.map((t) => ({
+				...t,
+				weekNumber: w.weekNumber,
+				weekTitle: w.title,
+			})),
+		) || [];
 
+	// Fetch Sprints for this user
 	const { data: sprints, isLoading } = useQuery<LearningSprint[]>({
 		queryKey: ["sprints", { userId: user?.id }],
 		queryFn: async () => {
@@ -73,10 +98,40 @@ function SprintsPage() {
 		sprints?.reduce((acc, s) => acc + s.durationMinutes, 0) || 0;
 	const habitReached = sprints?.filter((s) => s.isHabitQualified).length || 0;
 
+	const handleStartSession = () => {
+		const topic = allTopics.find((t) => t.id === setupTopicId);
+		startSession(
+			setupTopicId || null,
+			topic ? `${topic.title}` : null,
+			setupDurationMinutes,
+		);
+	};
+
+	const handleAbandon = () => {
+		if (confirm("Batalkan sesi fokus ini? Progres waktu tidak akan dicatat.")) {
+			abandonSession();
+		}
+	};
+
+	// Timer calculations
+	const remainingSeconds = Math.max(0, targetSeconds - elapsedSeconds);
+	const remMinutes = Math.floor(remainingSeconds / 60);
+	const remSecs = remainingSeconds % 60;
+	const formattedRemaining = `${String(remMinutes).padStart(2, "0")}:${String(remSecs).padStart(2, "0")}`;
+
+	const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+	const elapsedSecs = elapsedSeconds % 60;
+	const formattedElapsed = `${String(elapsedMinutes).padStart(2, "0")}:${String(elapsedSecs).padStart(2, "0")}`;
+
+	const progressPercent = Math.min(
+		100,
+		Math.round((elapsedSeconds / targetSeconds) * 100),
+	);
+
 	if (isLoading) {
 		return (
 			<div className="space-y-6">
-				<div className="h-44 bg-white border border-slate-200 rounded-xl animate-pulse" />
+				<div className="h-48 bg-white border border-slate-200 rounded-xl animate-pulse" />
 				<div className="grid grid-cols-3 gap-4">
 					{[1, 2, 3].map((i) => (
 						<div
@@ -92,66 +147,213 @@ function SprintsPage() {
 
 	return (
 		<div className="space-y-6">
-			{/* 1. Header & Interactive Focus Timer Panel */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-				<div className="space-y-1 max-w-xl">
-					<div className="flex items-center gap-2">
-						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-							Metode Belajar
-						</span>
-						<span className="text-slate-300">•</span>
-						<span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.2 rounded-full inline-flex items-center gap-1 font-mono">
-							<Flame size={12} className="text-amber-500" />
-							<span>Target Habit ≥25 Menit</span>
-						</span>
-					</div>
+			{/* 1. Interactive Focus Session Tracker (Session-Inspired) */}
+			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+				{status === "IDLE" || status === "COMPLETED" ? (
+					/* IDLE / SETUP VIEW */
+					<div className="p-6 md:p-8 space-y-6">
+						<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+							<div className="space-y-1">
+								<div className="flex items-center gap-2">
+									<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+										Focus Mode
+									</span>
+									<span className="text-slate-300">•</span>
+									<span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-mono">
+										<Flame size={12} className="text-amber-500" />
+										<span>Target Standar ≥25 Menit</span>
+									</span>
+								</div>
 
-					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
-						Sprint Belajar & Refleksi Mandiri
-					</h2>
+								<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
+									Mulai Sesi Fokus (Learning Sprint)
+								</h2>
 
-					<p className="text-xs text-slate-500 leading-relaxed">
-						Fokus belajar tanpa distraksi selama minimal 25 menit. Catat apa
-						yang Anda pelajari, latihan yang dibuat, dan kendala yang dihadapi.
-					</p>
-				</div>
+								<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+									Pilih materi yang ingin Anda pelajari tanpa distraksi. Saat
+									waktu selesai (atau saat Anda menyelesaikannya), sistem akan
+									otomatis membuka form refleksi untuk mencatat pencapaian Anda.
+								</p>
+							</div>
 
-				{/* Embedded 25:00 Focus Timer Widget */}
-				<div className="flex items-center gap-4 p-3 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
-					<div className="text-center px-2">
-						<span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block font-medium">
-							Timer Sesi Fokus
-						</span>
-						<div className="text-2xl font-mono font-bold text-slate-900 tracking-tight">
-							{formatTimer(timerSeconds)}
+							<div className="flex items-center gap-2 shrink-0">
+								<button
+									type="button"
+									onClick={() => openReflectionModal(null, 25)}
+									className="px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+								>
+									<Plus size={14} />
+									<span>Catat Manual (Offline)</span>
+								</button>
+							</div>
+						</div>
+
+						{/* Setup Controls: Target Topic & Duration Presets */}
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+							{/* Topic Selector */}
+							<div className="md:col-span-2 space-y-2">
+								<label className="block text-xs font-semibold text-slate-800">
+									Pilih Topik Silabus yang Akan Dipelajari
+								</label>
+								<select
+									value={setupTopicId}
+									onChange={(e) => setSetupTopicId(e.target.value)}
+									className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+								>
+									<option value="">-- Belajar Mandiri / Topik Bebas --</option>
+									{roadmapWeeks?.map((week) => (
+										<optgroup
+											key={week.id}
+											label={`Minggu ${week.weekNumber}: ${week.title}`}
+										>
+											{week.topics.map((t) => (
+												<option key={t.id} value={t.id}>
+													[{t.category}] {t.title}
+												</option>
+											))}
+										</optgroup>
+									))}
+								</select>
+							</div>
+
+							{/* Duration Presets */}
+							<div className="space-y-2">
+								<label className="block text-xs font-semibold text-slate-800">
+									Target Durasi Fokus
+								</label>
+								<div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-lg">
+									{[15, 25, 50].map((dur) => (
+										<button
+											key={dur}
+											type="button"
+											onClick={() => setSetupDurationMinutes(dur)}
+											className={`py-1.5 text-xs font-mono font-medium rounded-md transition-all cursor-pointer ${
+												setupDurationMinutes === dur
+													? "bg-white text-blue-700 shadow-xs font-semibold"
+													: "text-slate-600 hover:text-slate-900"
+											}`}
+										>
+											{dur}m
+										</button>
+									))}
+								</div>
+							</div>
+						</div>
+
+						{/* Launch Primary CTA */}
+						<div className="pt-2">
+							<button
+								type="button"
+								onClick={handleStartSession}
+								className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center justify-center gap-2 transition-all cursor-pointer hover:shadow-md"
+							>
+								<Play size={15} />
+								<span>Mulai Sesi Fokus ({setupDurationMinutes} Menit)</span>
+							</button>
 						</div>
 					</div>
+				) : (
+					/* ACTIVE / PAUSED RUNNING SESSION VIEW */
+					<div className="p-6 md:p-8 space-y-6 bg-slate-900 text-white">
+						{/* Top Bar: Topic Badge & Habit Indicator */}
+						<div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+							<div className="flex items-center gap-2 min-w-0">
+								<div className="relative flex items-center justify-center">
+									<div
+										className={`w-3 h-3 rounded-full ${
+											status === "RUNNING"
+												? "bg-emerald-400 animate-ping"
+												: "bg-amber-400"
+										}`}
+									/>
+									<div
+										className={`w-3 h-3 rounded-full absolute ${
+											status === "RUNNING" ? "bg-emerald-500" : "bg-amber-500"
+										}`}
+									/>
+								</div>
 
-					<div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
-						<button
-							type="button"
-							onClick={toggleTimer}
-							className={`p-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer ${
-								isTimerRunning
-									? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-									: "bg-blue-600 text-white hover:bg-blue-700"
-							}`}
-							title={isTimerRunning ? "Jeda Timer" : "Mulai Timer 25 Menit"}
-						>
-							{isTimerRunning ? <Pause size={14} /> : <Play size={14} />}
-							<span>{isTimerRunning ? "Jeda" : "Mulai"}</span>
-						</button>
+								<span className="text-xs font-mono uppercase tracking-wider text-slate-400">
+									{status === "RUNNING"
+										? "Sesi Sedang Berjalan"
+										: "Sesi Dijeda"}
+								</span>
+								<span className="text-slate-600">•</span>
+								<span className="text-xs font-semibold text-slate-200 truncate">
+									{selectedTopicTitle || "Sesi Belajar Mandiri"}
+								</span>
+							</div>
 
-						<button
-							type="button"
-							onClick={resetTimer}
-							className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
-							title="Reset Timer"
-						>
-							<RotateCcw size={14} />
-						</button>
+							{elapsedMinutes >= 25 && (
+								<span className="inline-flex items-center gap-1 text-xs font-mono text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+									<Flame size={12} className="text-amber-400" />
+									<span>Target Habit ≥25m Tercapai!</span>
+								</span>
+							)}
+						</div>
+
+						{/* Central Timer & Progress Ring Display */}
+						<div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
+							<div className="text-6xl sm:text-7xl font-mono font-bold tracking-tighter text-white">
+								{formattedRemaining}
+							</div>
+
+							<p className="text-xs text-slate-400 font-mono">
+								{formattedElapsed} waktu fokus berlalu ({progressPercent}%
+								selesai)
+							</p>
+
+							{/* Progress Line */}
+							<div className="w-full max-w-md bg-slate-800 h-2 rounded-full overflow-hidden mt-3">
+								<div
+									className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+									style={{ width: `${progressPercent}%` }}
+								/>
+							</div>
+						</div>
+
+						{/* Bottom Controls: Pause/Resume, Finish Early, Abandon */}
+						<div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-slate-800">
+							{status === "RUNNING" ? (
+								<button
+									type="button"
+									onClick={pauseSession}
+									className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+								>
+									<Pause size={14} />
+									<span>Jeda Sesi</span>
+								</button>
+							) : (
+								<button
+									type="button"
+									onClick={resumeSession}
+									className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+								>
+									<Play size={14} />
+									<span>Lanjutkan Fokus</span>
+								</button>
+							)}
+
+							<button
+								type="button"
+								onClick={finishEarly}
+								className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+							>
+								<CheckCircle2 size={14} />
+								<span>Selesaikan Sesi & Catat Refleksi</span>
+							</button>
+
+							<button
+								type="button"
+								onClick={handleAbandon}
+								className="px-3.5 py-2 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+							>
+								<XCircle size={14} />
+								<span>Batalkan</span>
+							</button>
+						</div>
 					</div>
-				</div>
+				)}
 			</div>
 
 			{/* 2. KPI Metrics Bar */}
@@ -165,8 +367,10 @@ function SprintsPage() {
 				/>
 				<StatCard
 					label="Total Waktu Belajar"
-					value={`${totalMinutes}m`}
-					subtext="Akumulasi waktu fokus"
+					value={`${totalMinutes} menit`}
+					subtext={`Rata-rata ${
+						sprints?.length ? Math.round(totalMinutes / sprints.length) : 0
+					}m / sesi`}
 					icon={Timer}
 					iconColor="text-blue-600"
 				/>
@@ -181,17 +385,22 @@ function SprintsPage() {
 
 			{/* 3. Action Bar */}
 			<div className="flex items-center justify-between">
-				<h3 className="text-sm font-semibold text-slate-900">
-					Daftar Refleksi Sprint Anda
-				</h3>
+				<div>
+					<h3 className="text-sm font-semibold text-slate-900">
+						Daftar Refleksi Sprint Anda
+					</h3>
+					<p className="text-xs text-slate-500">
+						Dokumentasi progres belajar dan link bukti submission
+					</p>
+				</div>
 
 				<button
 					type="button"
-					onClick={() => setIsModalOpen(true)}
+					onClick={() => openReflectionModal(null, 25)}
 					className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 				>
 					<Plus size={14} />
-					<span>Catat Sprint Manual</span>
+					<span>Catat Refleksi Manual</span>
 				</button>
 			</div>
 
@@ -219,14 +428,12 @@ function SprintsPage() {
 					<EmptyState
 						icon={Timer}
 						title="Belum ada catatan sprint belajar"
-						description="Gunakan timer 25:00 di atas atau klik tombol Catat Sprint Manual untuk mendokumentasikan proses belajar Anda."
-						actionLabel="Mulai Catat Sesi Sekarang"
-						onAction={() => setIsModalOpen(true)}
+						description="Pilih topik di atas dan mulai sesi fokus 25 menit untuk mendokumentasikan proses belajar Anda."
+						actionLabel="Mulai Sesi Fokus Pertama"
+						onAction={handleStartSession}
 					/>
 				)}
 			</div>
-
-			<SprintModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 		</div>
 	);
 }

@@ -4,9 +4,9 @@ import { ChevronDown, ChevronUp, Star, Timer } from "lucide-react";
 import React, { useState } from "react";
 import { ProgressBar } from "../components/common/ProgressBar.js";
 import { SelfAssessmentButton } from "../components/common/SelfAssessmentButton.js";
-import { SprintModal } from "../components/common/SprintModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { useTimerStore } from "../stores/timerStore.js";
 import type { ChecklistProgressStatus, RoadmapWeek } from "../types/index.js";
 
 export const Route = createFileRoute("/roadmap")({ component: RoadmapPage });
@@ -14,14 +14,12 @@ export const Route = createFileRoute("/roadmap")({ component: RoadmapPage });
 function RoadmapPage() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
+	const { openReflectionModal } = useTimerStore();
 	const queryClient = useQueryClient();
 
 	const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>(
 		{},
 	);
-	const [selectedTopicIdForSprint, setSelectedTopicIdForSprint] = useState<
-		string | null
-	>(null);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -323,7 +321,7 @@ function RoadmapPage() {
 														type="button"
 														onClick={(e) => {
 															e.stopPropagation();
-															setSelectedTopicIdForSprint(topic.id);
+															openReflectionModal(topic.id, 25);
 														}}
 														className="text-[11px] font-medium text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
 													>
@@ -384,12 +382,6 @@ function RoadmapPage() {
 					);
 				})}
 			</div>
-
-			<SprintModal
-				isOpen={selectedTopicIdForSprint !== null}
-				onClose={() => setSelectedTopicIdForSprint(null)}
-				defaultTopicId={selectedTopicIdForSprint || undefined}
-			/>
 		</div>
 	);
 }
