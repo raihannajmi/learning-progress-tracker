@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { sound } from "../lib/sound.js";
 
 export type SessionStatus = "IDLE" | "RUNNING" | "PAUSED" | "COMPLETED";
 
@@ -12,6 +13,7 @@ interface TimerStoreState {
 	startedAt: number | null; // epoch timestamp
 	isReflectionModalOpen: boolean;
 	reflectionDurationMinutes: number;
+	isSoundEnabled: boolean;
 
 	// Actions
 	startSession: (
@@ -30,6 +32,7 @@ interface TimerStoreState {
 		durationMinutes?: number,
 	) => void;
 	closeReflectionModal: () => void;
+	toggleSound: () => void;
 	resetSession: () => void;
 }
 
@@ -44,6 +47,7 @@ export const useTimerStore = create<TimerStoreState>()(
 			startedAt: null,
 			isReflectionModalOpen: false,
 			reflectionDurationMinutes: 25,
+			isSoundEnabled: true,
 
 			startSession: (
 				topicId = null,
@@ -61,6 +65,11 @@ export const useTimerStore = create<TimerStoreState>()(
 					isReflectionModalOpen: false,
 					reflectionDurationMinutes: durationMinutes,
 				});
+
+				// Trigger first tick sound on start if enabled
+				if (get().isSoundEnabled) {
+					sound.playClockTick(true);
+				}
 			},
 
 			pauseSession: () => {
@@ -74,14 +83,23 @@ export const useTimerStore = create<TimerStoreState>()(
 				const { status } = get();
 				if (status === "PAUSED") {
 					set({ status: "RUNNING" });
+					if (get().isSoundEnabled) {
+						sound.playClockTick(true);
+					}
 				}
 			},
 
 			tick: () => {
-				const { status, elapsedSeconds, targetSeconds } = get();
+				const { status, elapsedSeconds, targetSeconds, isSoundEnabled } = get();
 				if (status !== "RUNNING") return;
 
 				const nextElapsed = elapsedSeconds + 1;
+
+				// Play procedural clock tick sound
+				if (isSoundEnabled) {
+					sound.playClockTick(nextElapsed % 2 === 0);
+				}
+
 				if (nextElapsed >= targetSeconds) {
 					// Reached target focus time!
 					get().completeSession();
@@ -91,7 +109,7 @@ export const useTimerStore = create<TimerStoreState>()(
 			},
 
 			finishEarly: () => {
-				const { elapsedSeconds, targetSeconds } = get();
+				const { elapsedSeconds, targetSeconds, isSoundEnabled } = get();
 				// Calculate rounded elapsed minutes (minimum 1 minute if started)
 				const recordedMinutes = Math.max(
 					1,
@@ -101,6 +119,10 @@ export const useTimerStore = create<TimerStoreState>()(
 					),
 				);
 
+				if (isSoundEnabled) {
+					sound.playCompletionChime();
+				}
+
 				set({
 					status: "COMPLETED",
 					isReflectionModalOpen: true,
@@ -109,8 +131,12 @@ export const useTimerStore = create<TimerStoreState>()(
 			},
 
 			completeSession: () => {
-				const { targetSeconds } = get();
+				const { targetSeconds, isSoundEnabled } = get();
 				const durationMin = Math.round(targetSeconds / 60);
+
+				if (isSoundEnabled) {
+					sound.playCompletionChime();
+				}
 
 				set({
 					status: "COMPLETED",
@@ -148,6 +174,14 @@ export const useTimerStore = create<TimerStoreState>()(
 				});
 			},
 
+			toggleSound: () => {
+				const next = !get().isSoundEnabled;
+				set({ isSoundEnabled: next });
+				if (next) {
+					sound.playClockTick(true);
+				}
+			},
+
 			resetSession: () => {
 				set({
 					status: "IDLE",
@@ -156,11 +190,22 @@ export const useTimerStore = create<TimerStoreState>()(
 					selectedTopicId: null,
 					selectedTopicTitle: null,
 					startedAt: null,
+					isReflectionModalOpen: false,
 				});
 			},
 		}),
 		{
-			name: "learning-tracker-focus-session",
+			name: "learning-tracker-timer",
+			partialize: (state) => ({
+				status: state.status,
+				targetSeconds: state.targetSeconds,
+				elapsedSeconds: state.elapsedSeconds,
+				selectedTopicId: state.selectedTopicId,
+				selectedTopicTitle: state.selectedTopicTitle,
+				startedAt: state.startedAt,
+				reflectionDurationMinutes: state.reflectionDurationMinutes,
+				isSoundEnabled: state.isSoundEnabled,
+			}),
 		},
 	),
 );

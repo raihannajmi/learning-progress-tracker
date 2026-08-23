@@ -11,9 +11,11 @@ import {
 	Play,
 	Plus,
 	Timer,
+	Volume2,
+	VolumeX,
 	XCircle,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
@@ -52,12 +54,13 @@ function SprintsPage() {
 		targetSeconds,
 		elapsedSeconds,
 		selectedTopicTitle,
+		isSoundEnabled,
 		startSession,
 		pauseSession,
 		resumeSession,
-		tick,
 		finishEarly,
 		abandonSession,
+		toggleSound,
 		openReflectionModal,
 	} = useTimerStore();
 
@@ -84,17 +87,6 @@ function SprintsPage() {
 			}),
 		});
 	};
-
-	// Tick timer in background while page is mounted
-	useEffect(() => {
-		if (status !== "RUNNING") return;
-
-		const interval = setInterval(() => {
-			tick();
-		}, 1000);
-
-		return () => clearInterval(interval);
-	}, [status, tick]);
 
 	// Fetch Roadmap for topic picker
 	const { data: roadmapWeeks } = useQuery<RoadmapWeek[]>({
@@ -174,7 +166,7 @@ function SprintsPage() {
 
 	if (isLoading && !sprintResponse) {
 		return (
-			<div className="space-y-6">
+			<div className="max-w-3xl mx-auto w-full space-y-6">
 				<div className="h-48 bg-white border border-slate-200 rounded-xl animate-pulse" />
 				<div className="grid grid-cols-3 gap-4">
 					{[1, 2, 3].map((i) => (
@@ -191,7 +183,7 @@ function SprintsPage() {
 
 	return (
 		<div className="max-w-3xl mx-auto w-full space-y-6">
-			{/* 1. Interactive Focus Session Tracker (Session-Inspired) */}
+			{/* 1. Interactive Focus Session Tracker */}
 			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
 				{status === "IDLE" || status === "COMPLETED" ? (
 					/* IDLE / SETUP VIEW */
@@ -214,20 +206,44 @@ function SprintsPage() {
 								</h2>
 
 								<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-									Pilih materi yang ingin Anda pelajari tanpa distraksi. Saat
-									waktu selesai (atau saat Anda menyelesaikannya), sistem akan
-									otomatis membuka form refleksi untuk mencatat pencapaian Anda.
+									Pilih materi yang ingin Anda pelajari tanpa distraksi. Sistem
+									dilengkapi dengan detak jam audio fokus dan bel penyelesaian
+									otomatis.
 								</p>
 							</div>
 
 							<div className="flex items-center gap-2 shrink-0">
 								<button
 									type="button"
+									onClick={toggleSound}
+									className={`px-3 py-2 text-xs font-medium rounded-lg border inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+										isSoundEnabled
+											? "bg-amber-50 border-amber-200 text-amber-800"
+											: "bg-slate-50 border-slate-200 text-slate-500"
+									}`}
+									title={
+										isSoundEnabled
+											? "Suara detak jam aktif"
+											: "Suara detak jam nonaktif"
+									}
+								>
+									{isSoundEnabled ? (
+										<Volume2 size={14} className="text-amber-600" />
+									) : (
+										<VolumeX size={14} />
+									)}
+									<span>
+										{isSoundEnabled ? "Suara Detak On" : "Suara Detak Off"}
+									</span>
+								</button>
+
+								<button
+									type="button"
 									onClick={() => openReflectionModal(null, 25)}
 									className="px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 								>
 									<Plus size={14} />
-									<span>Catat Manual (Offline)</span>
+									<span>Catat Manual</span>
 								</button>
 							</div>
 						</div>
@@ -328,12 +344,38 @@ function SprintsPage() {
 								</span>
 							</div>
 
-							{elapsedMinutes >= 25 && (
-								<span className="inline-flex items-center gap-1 text-xs font-mono text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
-									<Flame size={12} className="text-amber-400" />
-									<span>Target Habit ≥25m Tercapai!</span>
-								</span>
-							)}
+							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									onClick={toggleSound}
+									className={`p-1.5 rounded-lg text-xs font-mono border transition-colors cursor-pointer inline-flex items-center gap-1 ${
+										isSoundEnabled
+											? "text-amber-400 border-amber-500/30 bg-amber-950/40 hover:bg-amber-950/60"
+											: "text-slate-500 border-slate-800 bg-slate-800/60 hover:bg-slate-800"
+									}`}
+									title={
+										isSoundEnabled
+											? "Mute suara detak jam"
+											: "Aktifkan suara detak jam"
+									}
+								>
+									{isSoundEnabled ? (
+										<Volume2 size={13} />
+									) : (
+										<VolumeX size={13} />
+									)}
+									<span className="text-[11px]">
+										{isSoundEnabled ? "Suara Detak On" : "Suara Mute"}
+									</span>
+								</button>
+
+								{elapsedMinutes >= 25 && (
+									<span className="inline-flex items-center gap-1 text-xs font-mono text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+										<Flame size={12} className="text-amber-400" />
+										<span>Target Habit ≥25m Tercapai!</span>
+									</span>
+								)}
+							</div>
 						</div>
 
 						{/* Central Timer & Progress Ring Display */}

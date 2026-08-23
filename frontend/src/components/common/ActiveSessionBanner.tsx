@@ -1,4 +1,12 @@
-import { CheckCircle2, Flame, Pause, Play, XCircle } from "lucide-react";
+import {
+	CheckCircle2,
+	Flame,
+	Pause,
+	Play,
+	Volume2,
+	VolumeX,
+	XCircle,
+} from "lucide-react";
 import type React from "react";
 import { useEffect } from "react";
 import { useTimerStore } from "../../stores/timerStore.js";
@@ -9,11 +17,13 @@ export const ActiveSessionBanner: React.FC = () => {
 		targetSeconds,
 		elapsedSeconds,
 		selectedTopicTitle,
+		isSoundEnabled,
 		tick,
 		pauseSession,
 		resumeSession,
 		finishEarly,
 		abandonSession,
+		toggleSound,
 	} = useTimerStore();
 
 	// Run the tick interval whenever status is RUNNING
@@ -99,6 +109,24 @@ export const ActiveSessionBanner: React.FC = () => {
 				</div>
 
 				<div className="flex items-center gap-1.5 pl-2 border-l border-slate-700">
+					{/* Sound Toggle */}
+					<button
+						type="button"
+						onClick={toggleSound}
+						className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+							isSoundEnabled
+								? "text-amber-400 hover:bg-slate-800"
+								: "text-slate-500 hover:bg-slate-800"
+						}`}
+						title={
+							isSoundEnabled
+								? "Suara detak jam aktif (Klik untuk mute)"
+								: "Suara detak jam mati (Klik untuk aktifkan)"
+						}
+					>
+						{isSoundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+					</button>
+
 					{status === "RUNNING" ? (
 						<button
 							type="button"
