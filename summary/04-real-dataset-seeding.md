@@ -1,28 +1,30 @@
-# Summary 04: Real Class & Student Dataset Seeding
+# Summary 04: Class & Student Whitelist Dataset Architecture
 
 **Date:** 2026-08-22  
 **Status:** Completed & Database Seeded  
-**Source:** [database.md](file:///Users/najmiraihan/Developer/learning-progress-tracker/database.md)
+**Reference:** [database.md](file:///Users/najmiraihan/Developer/learning-progress-tracker/database.md)
 
 ---
 
-## 1. Seed Summary
+## 1. Seed Architecture & Privacy Separation
 
-- **Primary Admin:**
+- **Primary Admin / Lecturer:**
   - Name: `Alif Najmi Raihan Putra Hidayat`
   - Email: `najmiraihanworks@gmail.com`
   - Role: `ADMIN`
-- **Classes Seeded:**
-  1. `Rabu, Jam 10 DC 3A` (Term: `2026/2027 Ganjil`) — 49 Mahasiswa
-  2. `Kamis, Jam 7 D1 327` (Term: `2026/2027 Ganjil`) — 43 Mahasiswa
-- **Total Real Students:** 92 Mahasiswa
-- **Roadmap Syllabus:** 8 Weeks (HTML/CSS Fundamentals, Modern Layouts, Responsive Design, JS Fundamentals, Async & REST, React, Express API, Fullstack Integration).
+- **Academic Classes Seeded:**
+  1. `Rabu, Jam 10 DC 3A` (Term: `2026/2027 Ganjil`)
+  2. `Kamis, Jam 7 D1 327` (Term: `2026/2027 Ganjil`)
+- **Student Privacy & Public Repo Protection:**
+  - **Public Demo Dataset:** 30 synthetic demo students committed for public open-source repository usage.
+  - **Private Real Dataset (`students.private.json`):** Git-ignored file for private class usage by the instructor.
+- **Roadmap Syllabus:** 8 Weeks of Web Development Curriculum (HTML/CSS, JavaScript, React, Node/Express, PostgreSQL, Cloud Deployment).
 
 ---
 
-## 2. Quick Test / Demo Logins
+## 2. Quick Test / Demo Logins (Dev Mode)
 
-Di halaman login (`/`), telah disediakan tombol login instan:
+Di halaman login (`/`), telah disediakan tombol login instan untuk simulasi:
 - **Alif Najmi Raihan (Admin)** (`najmiraihanworks@gmail.com`)
-- **Muhammad Zahi Ustadzi (Mahasiswa Kelas Rabu)** (`muhammadzahi006@students.unnes.ac.id`)
-- **Yun Sabarina Mikanda (Mahasiswa Kelas Kamis)** (`yunamikanda06@students.unnes.ac.id`)
+- **Budi Santoso (Mahasiswa Kelas Rabu)** (`student.01@demo.univ.ac.id`)
+- **Yunita Sari (Mahasiswa Kelas Kamis)** (`student.16@demo.univ.ac.id`)

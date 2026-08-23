@@ -157,8 +157,9 @@ these even in a quick response:
   balance, catalog/filter UI, form CTA placement → `design-system.md`
 - Cron jobs, BullMQ/queues, Puppeteer/PDF rendering pipeline, S3/R2
   uploads → `specialized.md`
-- Planning a screen's behavior before coding it → `frontend-build.md`
-  Part 0
-- Auditing without changing code → `review-audit.md`
+- Database-driven data & Dual Seeding (`seed-dev.ts` vs `seed-prod.ts`) →
+  `database.md` & `summary/08-database-driven-architecture-and-dual-seeds.md`.
+  Zero hardcoded fallback strings/arrays in application code; all domain entities,
+  whitelists, syllabus, and progress must come dynamically from the database.
 
 "stop fullstack-build" or "normal mode": revert to normal coding behavior.

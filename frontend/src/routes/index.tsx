@@ -174,18 +174,14 @@ function LoginPage() {
 								<button
 									type="button"
 									onClick={() =>
-										handleVerify(
-											"dev-mock:muhammadzahi006@students.unnes.ac.id",
-										)
+										handleVerify("dev-mock:student.01@demo.univ.ac.id")
 									}
 									disabled={loading}
 									className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
 								>
 									<div className="flex items-center gap-2 min-w-0">
 										<User size={14} className="text-slate-500 shrink-0" />
-										<span className="truncate">
-											Muhammad Zahi (Rabu, DC 3A)
-										</span>
+										<span className="truncate">Budi Santoso (Rabu, DC 3A)</span>
 									</div>
 									<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
 										MAHASISWA
@@ -195,7 +191,7 @@ function LoginPage() {
 								<button
 									type="button"
 									onClick={() =>
-										handleVerify("dev-mock:yunamikanda06@students.unnes.ac.id")
+										handleVerify("dev-mock:student.16@demo.univ.ac.id")
 									}
 									disabled={loading}
 									className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
@@ -203,7 +199,7 @@ function LoginPage() {
 									<div className="flex items-center gap-2 min-w-0">
 										<User size={14} className="text-slate-500 shrink-0" />
 										<span className="truncate">
-											Yun Sabarina (Kamis, D1 327)
+											Yunita Sari (Kamis, D1 327)
 										</span>
 									</div>
 									<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">

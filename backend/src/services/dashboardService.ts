@@ -13,25 +13,37 @@ import { eq, and, sql, desc, gte, isNotNull } from 'drizzle-orm';
 
 export class DashboardService {
   static async getStudentDashboard(userId: string) {
-    // 1. Get current active roadmap week
-    const [currentWeek] = await db
+    // 1. Get current active roadmap week (or first week in syllabus)
+    let [currentWeek] = await db
       .select()
       .from(roadmapWeeks)
       .where(eq(roadmapWeeks.isCurrent, true))
       .limit(1);
 
-    // 2. Fetch all checklist items and user's progress
+    if (!currentWeek) {
+      const [firstWeek] = await db
+        .select()
+        .from(roadmapWeeks)
+        .orderBy(roadmapWeeks.weekNumber)
+        .limit(1);
+      currentWeek = firstWeek;
+    }
+
+    // 2. Fetch all checklist items with topic & week info directly from DB
     const allItems = await db
       .select({
         id: checklistItems.id,
         statement: checklistItems.statement,
+        topicId: checklistItems.topicId,
         category: topics.category,
         topicTitle: topics.title,
+        weekTitle: roadmapWeeks.title,
         weekNumber: roadmapWeeks.weekNumber,
       })
       .from(checklistItems)
       .innerJoin(topics, eq(checklistItems.topicId, topics.id))
-      .innerJoin(roadmapWeeks, eq(topics.weekId, roadmapWeeks.id));
+      .innerJoin(roadmapWeeks, eq(topics.weekId, roadmapWeeks.id))
+      .orderBy(roadmapWeeks.weekNumber, topics.sortOrder, checklistItems.sortOrder);
 
     const userProgress = await db
       .select()
@@ -41,17 +53,11 @@ export class DashboardService {
     const progressMap = new Map<string, string>();
     userProgress.forEach((p) => progressMap.set(p.checklistItemId, p.status));
 
-    // Group progress by domain category
+    // Group progress by domain category dynamically from DB records
     const categoryStats: Record<
       string,
       { total: number; independent: number; practicing: number; learning: number }
-    > = {
-      HTML: { total: 0, independent: 0, practicing: 0, learning: 0 },
-      CSS: { total: 0, independent: 0, practicing: 0, learning: 0 },
-      JAVASCRIPT: { total: 0, independent: 0, practicing: 0, learning: 0 },
-      BACKEND: { total: 0, independent: 0, practicing: 0, learning: 0 },
-      FULLSTACK: { total: 0, independent: 0, practicing: 0, learning: 0 },
-    };
+    > = {};
 
     let totalChecklists = allItems.length;
     let totalIndependent = 0;
@@ -63,7 +69,7 @@ export class DashboardService {
     } | null = null;
 
     allItems.forEach((item) => {
-      const cat = item.category || 'HTML';
+      const cat = item.category || 'OTHER';
       if (!categoryStats[cat]) {
         categoryStats[cat] = { total: 0, independent: 0, practicing: 0, learning: 0 };
       }
@@ -83,7 +89,7 @@ export class DashboardService {
         nextActionItem = {
           topicId: item.topicId,
           topicTitle: item.topicTitle,
-          moduleTitle: currentWeek?.title || 'HTML & CSS Fundamentals',
+          moduleTitle: item.weekTitle || currentWeek?.title || '',
           statement: item.statement,
         };
       }
@@ -108,8 +114,8 @@ export class DashboardService {
     return {
       currentWeek: currentWeek || {
         weekNumber: 1,
-        title: 'HTML & CSS Fundamentals',
-        description: 'Mulai belajar struktur dasar HTML dan styling CSS.',
+        title: allItems[0]?.weekTitle || 'Web Development',
+        description: null,
       },
       summary: {
         totalChecklists,
@@ -132,11 +138,11 @@ export class DashboardService {
         percentage: stats.total > 0 ? Math.round((stats.independent / stats.total) * 100) : 0,
       })),
       nextAction: {
-        topicId: nextActionItem?.topicId || null,
-        topicTitle: nextActionItem?.topicTitle || 'Eksplorasi Mandiri',
-        moduleTitle: nextActionItem?.moduleTitle || currentWeek?.title || 'HTML & CSS Fundamentals',
+        topicId: nextActionItem?.topicId || (allItems[0]?.topicId ?? null),
+        topicTitle: nextActionItem?.topicTitle || (allItems[0]?.topicTitle ?? 'Eksplorasi Mandiri'),
+        moduleTitle: nextActionItem?.moduleTitle || currentWeek?.title || '',
         statement: nextActionItem?.statement || 'Lanjutkan latihan dan dokumentasikan hasil belajar Anda.',
-        suggestedFocus: nextActionItem?.topicTitle || 'Eksplorasi Mandiri',
+        suggestedFocus: nextActionItem?.topicTitle || (allItems[0]?.topicTitle ?? 'Eksplorasi Mandiri'),
         minimumTarget: '25 menit focused learning sprint',
       },
       recentSprints: recentSprints.map((s) => ({
@@ -220,41 +226,33 @@ export class DashboardService {
       .from(peerFeedback);
     const totalFeedbackGiven = fbCountRes?.count || 0;
 
-    // 4. Common Confusions Extraction / Aggregation with examples
+    // 4. Common Confusions Extraction / Aggregation dynamically matched against DB topics
+    const dbTopics = await db
+      .select({ id: topics.id, title: topics.title, category: topics.category })
+      .from(topics);
+
     const confusionData: Record<string, { mentions: number; examples: string[] }> = {};
-    const confusionPhrases = [
-      'Flexbox vs Grid',
-      'Media Query & Breakpoint',
-      'Box Model & Margin Collapse',
-      'Position Absolute & Relative',
-      'Async / Await & Promise',
-      'DOM Manipulation',
-      'React useEffect & Lifecycle',
-      'State Management',
-      'Express Middleware',
-      'Database Relations & Migration',
-    ];
 
     allSprints.forEach((s) => {
       if (s.confusingParts && s.confusingParts.trim()) {
         const text = s.confusingParts.toLowerCase();
-        confusionPhrases.forEach((phrase) => {
-          const keywords = phrase.toLowerCase().split(/[\s&/]+/);
+        dbTopics.forEach((t) => {
+          const keywords = t.title.toLowerCase().split(/[\s&/()\-–]+/);
           const matches = keywords.some((k) => k.length > 3 && text.includes(k));
           if (matches) {
-            if (!confusionData[phrase]) {
-              confusionData[phrase] = { mentions: 0, examples: [] };
+            if (!confusionData[t.title]) {
+              confusionData[t.title] = { mentions: 0, examples: [] };
             }
-            confusionData[phrase].mentions += 1;
-            if (s.confusingParts && confusionData[phrase].examples.length < 3) {
-              confusionData[phrase].examples.push(s.confusingParts.trim());
+            confusionData[t.title].mentions += 1;
+            if (s.confusingParts && confusionData[t.title].examples.length < 3) {
+              confusionData[t.title].examples.push(s.confusingParts.trim());
             }
           }
         });
       }
     });
 
-    let commonConfusions = Object.entries(confusionData)
+    const commonConfusions = Object.entries(confusionData)
       .map(([topic, data]) => ({
         topic,
         topicTitle: topic,
@@ -262,38 +260,7 @@ export class DashboardService {
         examples: data.examples,
       }))
       .sort((a, b) => b.mentions - a.mentions)
-      .slice(0, 6);
-
-    // If few automated matches, provide top topic highlights with sample quotes
-    if (commonConfusions.length === 0) {
-      commonConfusions = [
-        {
-          topic: 'Flexbox vs Grid layouting',
-          topicTitle: 'Flexbox vs Grid layouting',
-          mentions: 3,
-          examples: [
-            'Bingung menentukan kapan memakai CSS Grid vs Flexbox untuk card gallery',
-            'Grid column template auto-fit minmax masih suka overflow di layar kecil',
-          ],
-        },
-        {
-          topic: 'Responsive navbar & media queries',
-          topicTitle: 'Responsive navbar & media queries',
-          mentions: 2,
-          examples: [
-            'Menu burger mobile suka nabrak saat resolusi tablet 768px',
-          ],
-        },
-        {
-          topic: 'CSS Specificity & box-sizing',
-          topicTitle: 'CSS Specificity & box-sizing',
-          mentions: 1,
-          examples: [
-            'Padding merusak lebar layout karena lupa box-sizing border-box',
-          ],
-        },
-      ];
-    }
+      .slice(0, 8);
 
     // 5. Students Needing Attention (No recent activity in 7 days)
     const latestSprintPerUser = new Map<string, Date>();

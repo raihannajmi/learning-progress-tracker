@@ -6,7 +6,9 @@ import { DashboardService } from './services/dashboardService.js';
 import { AdminStudentService } from './services/adminStudentService.js';
 import { RoadmapAdminService } from './services/roadmapAdminService.js';
 import { ClassService } from './services/classService.js';
-import { queryClient } from './db/index.js';
+import { db, queryClient } from './db/index.js';
+import { users } from './db/schema.js';
+import { eq } from 'drizzle-orm';
 
 async function runTests() {
   console.log('🧪 Starting Backend API & Business Logic Verification...\n');
@@ -27,7 +29,15 @@ async function runTests() {
 
     // 2. Whitelisted Student login
     console.log('2️⃣ Testing Whitelisted Student Login...');
-    const studentAuth = await AuthService.verifyGoogleLogin('dev-mock:muhammadzahi006@students.unnes.ac.id');
+    const [sampleStudent] = await db
+      .select()
+      .from(users)
+      .where(eq(users.role, 'STUDENT'))
+      .limit(1);
+
+    const studentAuth = await AuthService.verifyGoogleLogin(
+      `dev-mock:${sampleStudent?.email || 'student.01@demo.univ.ac.id'}`
+    );
     console.log(`   ✅ PASS: Student logged in. Name: ${studentAuth.user.name}, Role: ${studentAuth.user.role}, Token length: ${studentAuth.token.length}`);
 
     // 3. Whitelisted Admin login
