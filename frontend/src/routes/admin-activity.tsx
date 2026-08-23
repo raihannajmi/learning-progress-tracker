@@ -12,6 +12,7 @@ import {
 	Flame,
 	Timer,
 } from "lucide-react";
+import React from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { SelectDropdown } from "../components/common/SelectDropdown.js";
@@ -59,10 +60,11 @@ function AdminActivityPage() {
 
 	const updateFilters = (updates: Partial<ActivitySearchParams>) => {
 		navigate({
-			search: (prev) => ({
-				...prev,
+			to: "/admin-activity",
+			search: {
+				...searchParams,
 				...updates,
-			}),
+			},
 		});
 	};
 

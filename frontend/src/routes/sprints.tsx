@@ -15,6 +15,7 @@ import {
 	VolumeX,
 	XCircle,
 } from "lucide-react";
+import React, { useState } from "react";
 import { ConfirmModal } from "../components/common/ConfirmModal.js";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
@@ -83,10 +84,11 @@ function SprintsPage() {
 
 	const updateFilters = (updates: Partial<SprintSearchParams>) => {
 		navigate({
-			search: (prev) => ({
-				...prev,
+			to: "/sprints",
+			search: {
+				...searchParams,
 				...updates,
-			}),
+			},
 		});
 	};
 

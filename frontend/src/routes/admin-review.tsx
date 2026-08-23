@@ -88,25 +88,27 @@ function AdminReviewPage() {
 		const timer = setTimeout(() => {
 			if (searchInput !== currentSearch) {
 				navigate({
-					search: (prev) => ({
-						...prev,
+					to: "/admin-review",
+					search: {
+						...searchParams,
 						search: searchInput.trim() || undefined,
 						page: 1,
-					}),
+					},
 				});
 			}
 		}, 350);
 
 		return () => clearTimeout(timer);
-	}, [searchInput, currentSearch, navigate]);
+	}, [searchInput, currentSearch, navigate, searchParams]);
 
 	// Helper for updating URL parameters
 	const updateFilters = (updates: Partial<ReviewSearchParams>) => {
 		navigate({
-			search: (prev) => ({
-				...prev,
+			to: "/admin-review",
+			search: {
+				...searchParams,
 				...updates,
-			}),
+			},
 		});
 	};
 
@@ -388,10 +390,7 @@ function AdminReviewPage() {
 
 								{/* Right: Meta & Actions */}
 								<div className="flex items-center gap-3 shrink-0 self-end lg:self-center">
-									<HabitBadge
-										durationMinutes={item.durationMinutes}
-										isHabitQualified={item.isHabitQualified}
-									/>
+									<HabitBadge durationMinutes={item.durationMinutes} />
 
 									{item.evidenceUrl && (
 										<a
@@ -441,12 +440,12 @@ function AdminReviewPage() {
 						description="Semua submisi mahasiswa telah diperiksa atau tidak ditemukan data yang cocok dengan kriteria pencarian Anda."
 						actionLabel="Reset Semua Filter"
 						onAction={() =>
-							navigate({
-								search: {
-									page: 1,
-									limit: 10,
-									status: "ALL",
-								},
+							updateFilters({
+								page: 1,
+								limit: 10,
+								status: "ALL",
+								search: undefined,
+								classId: undefined,
 							})
 						}
 					/>
@@ -454,7 +453,7 @@ function AdminReviewPage() {
 
 				{/* 4. Pagination Footer */}
 				{pagination && pagination.totalPages > 1 && (
-					<div className="p-4 border-t border-slate-100 bg-slate-50/50">
+					<div className="p-4 border-t border-slate-100">
 						<Pagination
 							currentPage={currentPage}
 							totalPages={pagination.totalPages}
@@ -462,46 +461,45 @@ function AdminReviewPage() {
 							pageSize={pageSize}
 							totalItems={pagination.total}
 							onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
-							pageSizeOptions={[10, 20, 50]}
+							pageSizeOptions={[10, 25, 50]}
 						/>
 					</div>
 				)}
 			</div>
 
-			{/* 5. Dedicated Review & Feedback Drawer / Modal */}
+			{/* 5. Instructor Review Dialog Modal */}
 			{selectedSprintForReview && (
-				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
 						{/* Modal Header */}
-						<div className="flex items-center justify-between p-6 border-b border-slate-100 sticky top-0 bg-white z-10">
-							<div className="space-y-1">
-								<span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm border border-blue-200">
-									Formulir Evaluasi Dosen / TA
-								</span>
-								<h2 className="text-base font-semibold text-slate-900">
-									Review Sesi Belajar: {selectedSprintForReview.student.name}
+						<div className="p-5 border-b border-slate-100 flex items-center justify-between">
+							<div>
+								<h2 className="text-base font-bold text-slate-900">
+									Evaluasi & Feedback Asistensi Pembelajaran
 								</h2>
+								<p className="text-xs text-slate-500 mt-0.5">
+									Berikan bimbingan pedagogis atas submission belajar mahasiswa
+								</p>
 							</div>
-
 							<button
 								type="button"
 								onClick={() => setSelectedSprintForReview(null)}
-								className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+								className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
 							>
 								<X size={18} />
 							</button>
 						</div>
 
-						{/* Modal Content */}
-						<div className="p-6 space-y-6">
-							{/* Student & Topic Overview */}
-							<div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
-								<div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-									<div>
-										<span className="font-semibold text-slate-900">
+						{/* Modal Body */}
+						<div className="p-6 overflow-y-auto space-y-5">
+							{/* Student & Session Info Box */}
+							<div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+								<div className="flex flex-wrap items-center justify-between gap-2">
+									<div className="text-xs">
+										<span className="font-bold text-slate-900">
 											{selectedSprintForReview.student.name}
-										</span>{" "}
-										<span className="text-slate-400">
+										</span>
+										<span className="text-slate-400 font-mono ml-1.5">
 											({selectedSprintForReview.student.nim || "NIM -"})
 										</span>
 										<span className="text-slate-300 mx-2">•</span>
@@ -512,11 +510,10 @@ function AdminReviewPage() {
 
 									<HabitBadge
 										durationMinutes={selectedSprintForReview.durationMinutes}
-										isHabitQualified={selectedSprintForReview.isHabitQualified}
 									/>
 								</div>
 
-								<div className="text-xs space-y-1 pt-2 border-t border-slate-200/70">
+								<div className="text-xs space-y-1.5 pt-2 border-t border-slate-200/70">
 									<div className="flex items-center gap-2">
 										<span className="font-mono uppercase font-bold text-blue-600">
 											Topik:

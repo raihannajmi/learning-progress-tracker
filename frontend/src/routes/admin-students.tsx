@@ -599,7 +599,7 @@ function AdminStudentsPage() {
 							enableReinitialize={true}
 							onSubmit={(values) => addStudentMutation.mutate(values)}
 						>
-							{({ isSubmitting }) => (
+							{({ values, setFieldValue, isSubmitting }) => (
 								<Form className="space-y-3.5 text-xs">
 									<div>
 										<label className="block font-medium text-slate-700 mb-1">

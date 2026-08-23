@@ -55,10 +55,11 @@ function ClassFeedPage() {
 
 	const updateFilters = (updates: Partial<ClassSearchParams>) => {
 		navigate({
-			search: (prev) => ({
-				...prev,
+			to: "/class",
+			search: {
+				...searchParams,
 				...updates,
-			}),
+			},
 		});
 	};
 

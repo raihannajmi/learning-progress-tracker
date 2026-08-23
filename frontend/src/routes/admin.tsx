@@ -234,9 +234,8 @@ function AdminDashboardPage() {
 											<p className="font-semibold text-slate-800 truncate">
 												{s.name}
 											</p>
-											<p className="text-[11px] text-slate-400 font-mono">
-												{s.className} • Tidak aktif {s.daysInactive || "≥7"}{" "}
-												hari
+											<p className="text-[11px] text-slate-500 truncate">
+												{s.className} • {s.statusLabel}
 											</p>
 										</div>
 										<span className="text-[11px] font-mono text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200 shrink-0">
