@@ -88,6 +88,30 @@ export class SprintController {
     }
   }
 
+  static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      const data = await SprintService.updateSprint(id, userId, userRole, req.body);
+      sendSuccess(res, data, 'Learning sprint berhasil diperbarui!');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      const data = await SprintService.deleteSprint(id, userId, userRole);
+      sendSuccess(res, data, 'Learning sprint berhasil dihapus!');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async addFeedback(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id as string;
@@ -99,4 +123,32 @@ export class SprintController {
       next(error);
     }
   }
+
+  static async updateFeedback(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const sprintId = req.params.id as string;
+      const feedbackId = req.params.feedbackId as string;
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      const { comment } = req.body;
+      const data = await SprintService.updateFeedback(sprintId, feedbackId, userId, userRole, comment);
+      sendSuccess(res, data, 'Feedback berhasil diperbarui!');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteFeedback(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const sprintId = req.params.id as string;
+      const feedbackId = req.params.feedbackId as string;
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      const data = await SprintService.deleteFeedback(sprintId, feedbackId, userId, userRole);
+      sendSuccess(res, data, 'Feedback berhasil dihapus!');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

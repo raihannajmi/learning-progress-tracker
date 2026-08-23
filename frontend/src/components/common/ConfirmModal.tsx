@@ -5,26 +5,39 @@ interface ConfirmModalProps {
 	isOpen: boolean;
 	title: string;
 	description?: string;
+	message?: string;
 	confirmText?: string;
+	confirmLabel?: string;
 	cancelText?: string;
+	cancelLabel?: string;
 	variant?: "danger" | "warning" | "primary";
 	isLoading?: boolean;
 	onConfirm: () => void;
-	onCancel: () => void;
+	onCancel?: () => void;
+	onClose?: () => void;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 	isOpen,
 	title,
 	description,
-	confirmText = "Ya, Lanjutkan",
-	cancelText = "Batal",
+	message,
+	confirmText,
+	confirmLabel,
+	cancelText,
+	cancelLabel,
 	variant = "danger",
 	isLoading = false,
 	onConfirm,
 	onCancel,
+	onClose,
 }) => {
 	if (!isOpen) return null;
+
+	const handleCancel = onCancel || onClose || (() => {});
+	const descText = description || message;
+	const confirmBtnText = confirmText || confirmLabel || "Ya, Lanjutkan";
+	const cancelBtnText = cancelText || cancelLabel || "Batal";
 
 	const getIcon = () => {
 		switch (variant) {
@@ -65,7 +78,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 			<div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl border border-slate-200 text-center relative space-y-3">
 				<button
 					type="button"
-					onClick={onCancel}
+					onClick={handleCancel}
 					disabled={isLoading}
 					className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer disabled:opacity-50"
 				>
@@ -78,9 +91,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 					<h3 className="text-sm font-semibold text-slate-900 leading-snug">
 						{title}
 					</h3>
-					{description && (
+					{descText && (
 						<p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-							{description}
+							{descText}
 						</p>
 					)}
 				</div>
@@ -88,11 +101,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 				<div className="flex justify-center gap-2 pt-3 border-t border-slate-100">
 					<button
 						type="button"
-						onClick={onCancel}
+						onClick={handleCancel}
 						disabled={isLoading}
 						className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
 					>
-						{cancelText}
+						{cancelBtnText}
 					</button>
 					<button
 						type="button"
@@ -100,7 +113,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 						disabled={isLoading}
 						className={`px-4 py-1.5 text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50 ${getConfirmButtonClasses()}`}
 					>
-						{isLoading ? "Memproses..." : confirmText}
+						{isLoading ? "Memproses..." : confirmBtnText}
 					</button>
 				</div>
 			</div>

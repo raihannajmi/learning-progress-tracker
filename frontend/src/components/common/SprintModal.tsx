@@ -4,13 +4,15 @@ import { Link2, Timer, X } from "lucide-react";
 import type React from "react";
 import * as Yup from "yup";
 import { api } from "../../lib/api.js";
-import type { RoadmapWeek } from "../../types/index.js";
+import { toast } from "../../stores/toastStore.js";
+import type { LearningSprint, RoadmapWeek } from "../../types/index.js";
 
 interface Props {
 	isOpen: boolean;
 	onClose: () => void;
 	defaultTopicId?: string;
 	defaultDurationMinutes?: number;
+	sprintToEdit?: LearningSprint | null;
 }
 
 const SprintSchema = Yup.object().shape({
@@ -44,6 +46,7 @@ export const SprintModal: React.FC<Props> = ({
 	onClose,
 	defaultTopicId,
 	defaultDurationMinutes = 25,
+	sprintToEdit,
 }) => {
 	const queryClient = useQueryClient();
 
@@ -64,7 +67,7 @@ export const SprintModal: React.FC<Props> = ({
 			})),
 		) || [];
 
-	const createSprintMutation = useMutation({
+	const saveSprintMutation = useMutation({
 		mutationFn: async (values: any) => {
 			const payload = {
 				...values,
@@ -72,14 +75,34 @@ export const SprintModal: React.FC<Props> = ({
 				confusingParts: values.confusingParts || null,
 				evidenceUrl: values.evidenceUrl || null,
 			};
+
+			if (sprintToEdit) {
+				const res: any = await api.patch(
+					`/sprints/${sprintToEdit.id}`,
+					payload,
+				);
+				return res.data;
+			}
 			const res: any = await api.post("/sprints", payload);
 			return res.data;
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["sprints"] });
+			queryClient.invalidateQueries({ queryKey: ["classSprints"] });
 			queryClient.invalidateQueries({ queryKey: ["studentDashboard"] });
 			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
+			toast.success(
+				sprintToEdit
+					? "Sesi belajar berhasil diperbarui!"
+					: "Learning sprint berhasil dicatat!",
+			);
 			onClose();
+		},
+		onError: (err: any) => {
+			toast.error(
+				err?.response?.data?.message ||
+					"Gagal menyimpan sesi belajar. Silakan coba lagi.",
+			);
 		},
 	});
 
@@ -96,10 +119,14 @@ export const SprintModal: React.FC<Props> = ({
 						</div>
 						<div>
 							<h2 className="text-base font-semibold text-slate-900">
-								Catat Refleksi Sprint Belajar
+								{sprintToEdit
+									? "Edit Catatan Sesi Belajar"
+									: "Catat Refleksi Sprint Belajar"}
 							</h2>
 							<p className="text-xs text-slate-500">
-								Dokumentasikan sesi fokus minimal 25 menit Anda
+								{sprintToEdit
+									? "Perbarui refleksi atau tautan bukti latihan Anda"
+									: "Dokumentasikan sesi fokus minimal 25 menit Anda"}
 							</p>
 						</div>
 					</div>
@@ -117,18 +144,22 @@ export const SprintModal: React.FC<Props> = ({
 				<Formik
 					enableReinitialize={true}
 					initialValues={{
-						topicId: defaultTopicId || "",
-						durationMinutes: defaultDurationMinutes,
-						whatLearned: "",
-						whatPracticed: "",
-						confusingParts: "",
-						evidenceUrl: "",
-						evidenceType: "GITHUB",
-						needsFeedback: false,
+						topicId: sprintToEdit
+							? sprintToEdit.topic?.id || ""
+							: defaultTopicId || "",
+						durationMinutes: sprintToEdit
+							? sprintToEdit.durationMinutes
+							: defaultDurationMinutes,
+						whatLearned: sprintToEdit ? sprintToEdit.whatLearned : "",
+						whatPracticed: sprintToEdit ? sprintToEdit.whatPracticed : "",
+						confusingParts: sprintToEdit?.confusingParts || "",
+						evidenceUrl: sprintToEdit?.evidenceUrl || "",
+						evidenceType: sprintToEdit?.evidenceType || "GITHUB",
+						needsFeedback: Boolean(sprintToEdit?.needsFeedback),
 					}}
 					validationSchema={SprintSchema}
 					onSubmit={async (values) => {
-						await createSprintMutation.mutateAsync(values);
+						await saveSprintMutation.mutateAsync(values);
 					}}
 				>
 					{({ isSubmitting }) => (
@@ -290,12 +321,14 @@ export const SprintModal: React.FC<Props> = ({
 								</button>
 								<button
 									type="submit"
-									disabled={isSubmitting || createSprintMutation.isPending}
+									disabled={isSubmitting || saveSprintMutation.isPending}
 									className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
 								>
-									{isSubmitting || createSprintMutation.isPending
+									{isSubmitting || saveSprintMutation.isPending
 										? "Menyimpan..."
-										: "Simpan Refleksi"}
+										: sprintToEdit
+											? "Simpan Perubahan"
+											: "Simpan Refleksi"}
 								</button>
 							</div>
 						</Form>

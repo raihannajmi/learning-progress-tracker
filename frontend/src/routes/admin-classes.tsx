@@ -181,7 +181,7 @@ function AdminClassesPage() {
 	}
 
 	return (
-		<div className="max-w-5xl mx-auto w-full space-y-6">
+		<div className="max-w-5xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Header */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
 				<div>
@@ -370,7 +370,7 @@ function AdminClassesPage() {
 			{/* 4. Add / Edit Modal with Custom DatePicker */}
 			{isModalOpen && (
 				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4 max-h-[90dvh] overflow-y-auto">
 						<div className="flex items-center justify-between border-b border-slate-100 pb-3">
 							<h3 className="text-sm font-semibold text-slate-900">
 								{editingClass ? "Edit Kelas & Jadwal" : "Tambah Kelas Baru"}

@@ -216,7 +216,7 @@ function AdminReviewPage() {
 	];
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-6 max-w-full min-w-0">
 			{/* 1. Page Header */}
 			<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
 				<div>
@@ -339,10 +339,10 @@ function AdminReviewPage() {
 						{submissions.map((item) => (
 							<div
 								key={item.id}
-								className="p-5 hover:bg-slate-50/70 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+								className="p-4 sm:p-5 hover:bg-slate-50/70 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4 min-w-0"
 							>
 								{/* Left: Student info & topic */}
-								<div className="space-y-2 min-w-0 max-w-2xl">
+								<div className="space-y-2 min-w-0 max-w-full">
 									<div className="flex flex-wrap items-center gap-2">
 										<span className="font-semibold text-xs text-slate-900">
 											{item.student.name}
@@ -389,7 +389,7 @@ function AdminReviewPage() {
 								</div>
 
 								{/* Right: Meta & Actions */}
-								<div className="flex items-center gap-3 shrink-0 self-end lg:self-center">
+								<div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
 									<HabitBadge durationMinutes={item.durationMinutes} />
 
 									{item.evidenceUrl && (

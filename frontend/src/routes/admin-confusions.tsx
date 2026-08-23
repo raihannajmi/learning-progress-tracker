@@ -57,9 +57,9 @@ function AdminConfusionsPage() {
 	const confusions = data?.commonConfusions || [];
 
 	return (
-		<div className="max-w-4xl mx-auto w-full space-y-8">
+		<div className="max-w-4xl mx-auto w-full space-y-8 min-w-0 max-w-full">
 			{/* 1. Header with Breadcrumb Back Link & Class Filter */}
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 min-w-0">
 				<div className="space-y-1">
 					<Link
 						to="/admin"
@@ -79,7 +79,7 @@ function AdminConfusionsPage() {
 				</div>
 
 				{/* Class Filter Selector */}
-				<div className="w-56 shrink-0">
+				<div className="w-full sm:w-56 shrink-0">
 					<SelectDropdown
 						value={selectedClassId}
 						onChange={(val) => setSelectedClassId(val)}

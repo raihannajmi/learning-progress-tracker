@@ -25,8 +25,17 @@ import {
   updateChecklistSchema,
 } from '../validators/roadmapAdminValidators.js';
 import { updateChecklistProgressSchema } from '../validators/checklistValidators.js';
-import { createSprintSchema, querySprintSchema } from '../validators/sprintValidators.js';
-import { createFeedbackSchema } from '../validators/feedbackValidators.js';
+import {
+  createSprintSchema,
+  updateSprintSchema,
+  deleteSprintSchema,
+  querySprintSchema,
+} from '../validators/sprintValidators.js';
+import {
+  createFeedbackSchema,
+  updateFeedbackSchema,
+  deleteFeedbackSchema,
+} from '../validators/feedbackValidators.js';
 
 export const apiRouter: Router = Router();
 
@@ -173,11 +182,35 @@ apiRouter.post(
   SprintController.create
 );
 apiRouter.get('/sprints/:id', authenticate, SprintController.getById);
+apiRouter.patch(
+  '/sprints/:id',
+  authenticate,
+  validateRequest(updateSprintSchema),
+  SprintController.update
+);
+apiRouter.delete(
+  '/sprints/:id',
+  authenticate,
+  validateRequest(deleteSprintSchema),
+  SprintController.delete
+);
 apiRouter.post(
   '/sprints/:id/feedbacks',
   authenticate,
   validateRequest(createFeedbackSchema),
   SprintController.addFeedback
+);
+apiRouter.patch(
+  '/sprints/:id/feedbacks/:feedbackId',
+  authenticate,
+  validateRequest(updateFeedbackSchema),
+  SprintController.updateFeedback
+);
+apiRouter.delete(
+  '/sprints/:id/feedbacks/:feedbackId',
+  authenticate,
+  validateRequest(deleteFeedbackSchema),
+  SprintController.deleteFeedback
 );
 
 // 5.5. Admin / Instructor Review Queue & Feedback

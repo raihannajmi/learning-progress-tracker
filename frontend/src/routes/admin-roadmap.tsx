@@ -362,9 +362,9 @@ function AdminRoadmapPage() {
 	};
 
 	return (
-		<div className="max-w-5xl mx-auto w-full space-y-6">
+		<div className="max-w-5xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Header & Primary Action */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+			<div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
 				<div className="space-y-1">
 					<div className="flex items-center gap-2">
 						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">

@@ -453,4 +453,176 @@ export class SprintService {
       author,
     };
   }
+
+  static async updateFeedback(
+    sprintId: string,
+    feedbackId: string,
+    userId: string,
+    userRole: string,
+    comment: string
+  ) {
+    const [fb] = await db
+      .select()
+      .from(peerFeedback)
+      .where(and(eq(peerFeedback.id, feedbackId), eq(peerFeedback.sprintId, sprintId)))
+      .limit(1);
+
+    if (!fb) {
+      const err: any = new Error('Feedback tidak ditemukan');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (fb.authorId !== userId && userRole !== 'ADMIN') {
+      const err: any = new Error('Anda tidak memiliki izin untuk mengedit komentar ini');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const [updatedFb] = await db
+      .update(peerFeedback)
+      .set({
+        comment,
+        updatedAt: new Date(),
+      })
+      .where(eq(peerFeedback.id, feedbackId))
+      .returning();
+
+    const [author] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        avatarUrl: users.avatarUrl,
+        role: users.role,
+      })
+      .from(users)
+      .where(eq(users.id, fb.authorId))
+      .limit(1);
+
+    return {
+      ...updatedFb,
+      author,
+    };
+  }
+
+  static async deleteFeedback(
+    sprintId: string,
+    feedbackId: string,
+    userId: string,
+    userRole: string
+  ) {
+    const [fb] = await db
+      .select()
+      .from(peerFeedback)
+      .where(and(eq(peerFeedback.id, feedbackId), eq(peerFeedback.sprintId, sprintId)))
+      .limit(1);
+
+    if (!fb) {
+      const err: any = new Error('Feedback tidak ditemukan');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (fb.authorId !== userId && userRole !== 'ADMIN') {
+      const err: any = new Error('Anda tidak memiliki izin untuk menghapus komentar ini');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    await db.delete(peerFeedback).where(eq(peerFeedback.id, feedbackId));
+
+    return {
+      success: true,
+      message: 'Feedback berhasil dihapus',
+    };
+  }
+
+  static async updateSprint(
+    sprintId: string,
+    userId: string,
+    userRole: string,
+    data: {
+      topicId?: string | null;
+      durationMinutes?: number;
+      whatLearned?: string;
+      whatPracticed?: string;
+      confusingParts?: string | null;
+      evidenceUrl?: string | null;
+      evidenceType?: 'GITHUB' | 'GITHUB_PAGES' | 'LOOM' | 'FIGMA' | 'LIVE_DEMO' | 'OTHER';
+      needsFeedback?: boolean;
+    }
+  ) {
+    const [sprint] = await db
+      .select()
+      .from(learningSprints)
+      .where(eq(learningSprints.id, sprintId))
+      .limit(1);
+
+    if (!sprint) {
+      const err: any = new Error('Learning sprint tidak ditemukan');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (sprint.userId !== userId && userRole !== 'ADMIN') {
+      const err: any = new Error('Anda tidak memiliki izin untuk mengedit sesi belajar ini');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const updatePayload: Record<string, any> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.topicId !== undefined) updatePayload.topicId = data.topicId;
+    if (data.durationMinutes !== undefined) updatePayload.durationMinutes = data.durationMinutes;
+    if (data.whatLearned !== undefined) updatePayload.whatLearned = data.whatLearned;
+    if (data.whatPracticed !== undefined) updatePayload.whatPracticed = data.whatPracticed;
+    if (data.confusingParts !== undefined) updatePayload.confusingParts = data.confusingParts;
+    if (data.evidenceUrl !== undefined) updatePayload.evidenceUrl = data.evidenceUrl;
+    if (data.evidenceType !== undefined) updatePayload.evidenceType = data.evidenceType;
+    if (data.needsFeedback !== undefined) updatePayload.needsFeedback = Boolean(data.needsFeedback);
+
+    const [updatedSprint] = await db
+      .update(learningSprints)
+      .set(updatePayload)
+      .where(eq(learningSprints.id, sprintId))
+      .returning();
+
+    return {
+      ...updatedSprint,
+      isHabitQualified: updatedSprint.durationMinutes >= 25,
+    };
+  }
+
+  static async deleteSprint(sprintId: string, userId: string, userRole: string) {
+    const [sprint] = await db
+      .select()
+      .from(learningSprints)
+      .where(eq(learningSprints.id, sprintId))
+      .limit(1);
+
+    if (!sprint) {
+      const err: any = new Error('Learning sprint tidak ditemukan');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (sprint.userId !== userId && userRole !== 'ADMIN') {
+      const err: any = new Error('Anda tidak memiliki izin untuk menghapus sesi belajar ini');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    // Delete associated feedbacks first
+    await db.delete(peerFeedback).where(eq(peerFeedback.sprintId, sprintId));
+    // Delete sprint
+    await db.delete(learningSprints).where(eq(learningSprints.id, sprintId));
+
+    return {
+      success: true,
+      message: 'Learning sprint berhasil dihapus',
+    };
+  }
 }
+

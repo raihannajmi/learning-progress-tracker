@@ -4,6 +4,7 @@ import {
 	Calendar,
 	ChevronLeft,
 	ChevronRight,
+	ClipboardCheck,
 	Code2,
 	Compass,
 	Eye,
@@ -70,6 +71,11 @@ export const AppSidebar: React.FC<Props> = ({
 			to: "/admin",
 			label: "Monitoring Kelas",
 			icon: ShieldCheck,
+		},
+		{
+			to: "/admin-review",
+			label: "Antrean Review Submisi",
+			icon: ClipboardCheck,
 		},
 		{
 			to: "/admin-confusions",

@@ -52,29 +52,29 @@ export const SelfAssessmentButton: React.FC<Props> = ({
 		switch (status) {
 			case "CAN_DO_INDEPENDENTLY":
 				return (
-					<span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
-						<CheckCircle2 size={12} className="text-emerald-600" />
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-0.5 rounded-full text-xs sm:text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors select-none">
+						<CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
 						<span>Mandiri</span>
 					</span>
 				);
 			case "PRACTICING":
 				return (
-					<span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors">
-						<Dumbbell size={12} className="text-amber-600" />
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-0.5 rounded-full text-xs sm:text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors select-none">
+						<Dumbbell size={13} className="text-amber-600 shrink-0" />
 						<span>Berlatih</span>
 					</span>
 				);
 			case "LEARNING":
 				return (
-					<span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors">
-						<BookOpen size={12} className="text-sky-600" />
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-0.5 rounded-full text-xs sm:text-[11px] font-medium bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors select-none">
+						<BookOpen size={13} className="text-sky-600 shrink-0" />
 						<span>Mempelajari</span>
 					</span>
 				);
 			default:
 				return (
-					<span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors">
-						<Circle size={12} className="text-slate-400" />
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-0.5 rounded-full text-xs sm:text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors select-none">
+						<Circle size={13} className="text-slate-400 shrink-0" />
 						<span>Belum Mulai</span>
 					</span>
 				);
@@ -86,7 +86,7 @@ export const SelfAssessmentButton: React.FC<Props> = ({
 			type="button"
 			onClick={handleClick}
 			title="Klik untuk mengubah status self-assessment"
-			className="cursor-pointer transition-transform active:scale-95 text-left focus:outline-hidden"
+			className="cursor-pointer transition-transform active:scale-95 text-left focus:outline-hidden inline-flex items-center"
 		>
 			{renderBadge()}
 		</button>

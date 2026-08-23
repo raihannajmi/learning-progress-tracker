@@ -106,7 +106,7 @@ function ClassFeedPage() {
 		classesList?.find((c) => c.id === selectedClassId)?.name || "Semua Kelas";
 
 	return (
-		<div className="max-w-2xl mx-auto w-full space-y-6">
+		<div className="max-w-2xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Header & Context */}
 			<div className="space-y-1">
 				<h1 className="text-xl font-bold tracking-tight text-slate-900">

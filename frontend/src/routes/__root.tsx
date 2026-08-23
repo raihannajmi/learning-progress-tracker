@@ -126,7 +126,7 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 				setIsMobileOpen={setIsMobileOpen}
 			/>
 			<div
-				className={`flex-1 flex flex-col min-h-screen transition-all duration-200 ${
+				className={`flex-1 flex flex-col min-h-screen min-w-0 overflow-x-hidden transition-all duration-200 ${
 					isCollapsed ? "lg:pl-18" : "lg:pl-60"
 				}`}
 			>
@@ -135,8 +135,8 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 					isCollapsed={isCollapsed}
 					setIsMobileOpen={setIsMobileOpen}
 				/>
-				<main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-8 flex flex-col items-center">
-					<div className="w-full max-w-6xl mx-auto">{children}</div>
+				<main className="flex-1 w-full min-w-0 max-w-full px-3.5 sm:px-6 lg:px-8 py-5 sm:py-7 flex flex-col items-center">
+					<div className="w-full max-w-6xl mx-auto min-w-0">{children}</div>
 				</main>
 			</div>
 

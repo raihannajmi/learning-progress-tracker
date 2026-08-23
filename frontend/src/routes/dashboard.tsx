@@ -63,7 +63,7 @@ function StudentDashboard() {
 		data.nextAction?.statement || data.currentWeek.description;
 
 	return (
-		<div className="max-w-3xl mx-auto w-full space-y-9 py-2">
+		<div className="max-w-3xl mx-auto w-full space-y-9 py-2 min-w-0 max-w-full">
 			{/* 1. Contextual Focus Header: Hierarchy = Context -> Module -> Topic -> Statement -> Action */}
 			<section className="space-y-4">
 				<div className="space-y-1.5">

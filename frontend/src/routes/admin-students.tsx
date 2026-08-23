@@ -378,9 +378,9 @@ function AdminStudentsPage() {
 	};
 
 	return (
-		<div className="max-w-5xl mx-auto w-full space-y-6">
+		<div className="max-w-5xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Header */}
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 min-w-0">
 				<div>
 					<div className="flex items-center gap-2">
 						<span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
@@ -400,7 +400,7 @@ function AdminStudentsPage() {
 					</p>
 				</div>
 
-				<div className="flex items-center gap-2 shrink-0">
+				<div className="flex flex-wrap items-center gap-2 shrink-0">
 					<button
 						type="button"
 						onClick={() => setIsBatchModalOpen(true)}
@@ -422,7 +422,7 @@ function AdminStudentsPage() {
 			</div>
 
 			{/* 2. Filter Bar */}
-			<div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+			<div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3 min-w-0">
 				<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 					<div className="sm:col-span-2 relative">
 						<Search
@@ -461,8 +461,8 @@ function AdminStudentsPage() {
 				</div>
 			</div>
 
-			{/* 3. Students Table */}
-			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+			{/* 3. Students Table / Card List */}
+			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden min-w-0 max-w-full">
 				{isLoading ? (
 					<div className="p-8 space-y-4 animate-pulse">
 						{[1, 2, 3, 4, 5].map((i) => (
@@ -470,79 +470,142 @@ function AdminStudentsPage() {
 						))}
 					</div>
 				) : students.length > 0 ? (
-					<div className="overflow-x-auto">
-						<table className="w-full text-left text-xs border-collapse">
-							<thead>
-								<tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
-									<th className="py-3 px-4">Mahasiswa</th>
-									<th className="py-3 px-4">NIM</th>
-									<th className="py-3 px-4">Kelas</th>
-									<th className="py-3 px-4">Progres Mandiri</th>
-									<th className="py-3 px-4">Sprint</th>
-									<th className="py-3 px-4 text-right">Aksi</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-slate-100">
-								{students.map((student) => (
-									<tr
-										key={student.id}
-										className="hover:bg-slate-50/70 transition-colors"
-									>
-										<td className="py-3.5 px-4">
-											<div className="flex items-center gap-2.5">
-												<div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-[11px] text-slate-700 shrink-0">
-													{student.name.charAt(0).toUpperCase()}
-												</div>
-												<div className="min-w-0">
-													<p className="font-semibold text-slate-900 truncate">
-														{student.name}
-													</p>
-													<p className="text-[11px] text-slate-400 font-mono">
-														{student.email}
-													</p>
-												</div>
+					<>
+						{/* Mobile Card View (Zero Horizontal Scroll on Phone Screens) */}
+						<div className="divide-y divide-slate-100 md:hidden">
+							{students.map((student) => (
+								<div key={student.id} className="p-4 space-y-3">
+									<div className="flex items-start justify-between gap-3">
+										<div className="flex items-center gap-2.5 min-w-0">
+											<div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-xs text-slate-700 shrink-0">
+												{student.name.charAt(0).toUpperCase()}
 											</div>
-										</td>
-										<td className="py-3.5 px-4 font-mono text-slate-600">
-											{student.nim || "-"}
-										</td>
-										<td className="py-3.5 px-4 text-slate-700">
-											<span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-sm text-[11px]">
-												{student.className || "Belum ada kelas"}
+											<div className="min-w-0">
+												<p className="font-semibold text-xs text-slate-900 truncate">
+													{student.name}
+												</p>
+												<p className="text-[11px] text-slate-400 font-mono truncate">
+													{student.email}
+												</p>
+											</div>
+										</div>
+
+										<div className="flex items-center gap-1 shrink-0">
+											<button
+												type="button"
+												onClick={() => setInspectedStudent(student)}
+												className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-md transition-colors cursor-pointer"
+												title="Lihat Detail Progres"
+											>
+												<Eye size={15} />
+											</button>
+											<button
+												type="button"
+												onClick={() => setDeletingStudent(student)}
+												disabled={deleteStudentMutation.isPending}
+												className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
+												title="Hapus Mahasiswa"
+											>
+												<Trash2 size={15} />
+											</button>
+										</div>
+									</div>
+
+									<div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-mono">
+										<span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-sm">
+											{student.className || "Belum ada kelas"}
+										</span>
+										{student.nim && (
+											<span className="text-slate-500 bg-slate-50 border border-slate-200/80 px-1.5 py-0.5 rounded-sm">
+												NIM: {student.nim}
 											</span>
-										</td>
-										<td className="py-3.5 px-4 font-mono text-slate-700">
-											{student.checkedCount || 0} butir
-										</td>
-										<td className="py-3.5 px-4 font-mono text-slate-700">
-											{student.sprintCount || 0}x
-										</td>
-										<td className="py-3.5 px-4 text-right">
-											<div className="flex items-center justify-end gap-1.5">
-												<button
-													type="button"
-													onClick={() => setInspectedStudent(student)}
-													className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-md transition-colors cursor-pointer"
-													title="Lihat Detail Progres"
-												>
-													<Eye size={14} />
-												</button>
-												<button
-													type="button"
-													onClick={() => setDeletingStudent(student)}
-													disabled={deleteStudentMutation.isPending}
-													className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
-													title="Hapus Mahasiswa"
-												>
-													<Trash2 size={14} />
-												</button>
-											</div>
-										</td>
+										)}
+										<span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-sm">
+											{student.checkedCount || 0} butir mandiri
+										</span>
+										<span className="text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-sm">
+											{student.sprintCount || 0}x sprint
+										</span>
+									</div>
+								</div>
+							))}
+						</div>
+
+						{/* Desktop Table View */}
+						<div className="hidden md:block overflow-x-auto">
+							<table className="w-full text-left text-xs border-collapse">
+								<thead>
+									<tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
+										<th className="py-3 px-4">Mahasiswa</th>
+										<th className="py-3 px-4">NIM</th>
+										<th className="py-3 px-4">Kelas</th>
+										<th className="py-3 px-4">Progres Mandiri</th>
+										<th className="py-3 px-4">Sprint</th>
+										<th className="py-3 px-4 text-right">Aksi</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
+								</thead>
+								<tbody className="divide-y divide-slate-100">
+									{students.map((student) => (
+										<tr
+											key={student.id}
+											className="hover:bg-slate-50/70 transition-colors"
+										>
+											<td className="py-3.5 px-4">
+												<div className="flex items-center gap-2.5">
+													<div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-[11px] text-slate-700 shrink-0">
+														{student.name.charAt(0).toUpperCase()}
+													</div>
+													<div className="min-w-0">
+														<p className="font-semibold text-slate-900 truncate">
+															{student.name}
+														</p>
+														<p className="text-[11px] text-slate-400 font-mono">
+															{student.email}
+														</p>
+													</div>
+												</div>
+											</td>
+											<td className="py-3.5 px-4 font-mono text-slate-600">
+												{student.nim || "-"}
+											</td>
+											<td className="py-3.5 px-4 text-slate-700">
+												<span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-sm text-[11px]">
+													{student.className || "Belum ada kelas"}
+												</span>
+											</td>
+											<td className="py-3.5 px-4 font-mono text-slate-700">
+												{student.checkedCount || 0} butir
+											</td>
+											<td className="py-3.5 px-4 font-mono text-slate-700">
+												{student.sprintCount || 0}x
+											</td>
+											<td className="py-3.5 px-4 text-right">
+												<div className="flex items-center justify-end gap-1.5">
+													<button
+														type="button"
+														onClick={() => setInspectedStudent(student)}
+														className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-md transition-colors cursor-pointer"
+														title="Lihat Detail Progres"
+													>
+														<Eye size={14} />
+													</button>
+													<button
+														type="button"
+														onClick={() => setDeletingStudent(student)}
+														disabled={deleteStudentMutation.isPending}
+														className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
+														title="Hapus Mahasiswa"
+													>
+														<Trash2 size={14} />
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					</>
 				) : (
 					<EmptyState
 						icon={UserCheck}
@@ -701,7 +764,7 @@ function AdminStudentsPage() {
 			{/* 5. Batch Import CSV Modal */}
 			{isBatchModalOpen && (
 				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg p-6 space-y-4">
+					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg p-6 space-y-4 max-h-[90dvh] overflow-y-auto">
 						<div className="flex items-center justify-between border-b border-slate-100 pb-3">
 							<h3 className="text-sm font-semibold text-slate-900">
 								Impor Batch Data Mahasiswa

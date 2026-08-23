@@ -59,6 +59,11 @@ export const AppHeader: React.FC<Props> = ({ setIsMobileOpen }) => {
 					title: "Aktivitas & Bukti",
 					category: "Pembelajaran",
 				};
+			case "/admin-review":
+				return {
+					title: "Antrean Review Submisi",
+					category: "Evaluasi & Asistensi",
+				};
 			case "/admin-classes":
 				return {
 					title: "Kelola Kelas & Jadwal",

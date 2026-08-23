@@ -72,13 +72,37 @@ async function runTests() {
     console.log(`   ✅ PASS: Sprint created with duration ${newSprint.durationMinutes}m. isHabitQualified: ${newSprint.isHabitQualified}`);
 
     // 6. Peer Feedback
-    console.log('6️⃣ Testing Peer Feedback on Sprint...');
+    console.log('6️⃣ Testing Peer Feedback on Sprint (Add, Edit, & Delete)...');
     const feedback = await SprintService.addFeedback(
       newSprint.id,
       adminAuth.user.id,
       'Slicing grid gallery kamu sangat responsif di layar mobile!'
     );
     console.log(`   ✅ PASS: Peer feedback added by ${feedback.author?.name}: "${feedback.comment}"`);
+
+    const updatedFeedback = await SprintService.updateFeedback(
+      newSprint.id,
+      feedback.id,
+      adminAuth.user.id,
+      'ADMIN',
+      'Slicing grid gallery kamu sangat responsif di layar mobile! (Telah diedit)'
+    );
+    console.log(`   ✅ PASS: Peer feedback edited: "${updatedFeedback.comment}"`);
+
+    const delFeedbackRes = await SprintService.deleteFeedback(
+      newSprint.id,
+      feedback.id,
+      adminAuth.user.id,
+      'ADMIN'
+    );
+    console.log(`   ✅ PASS: Peer feedback deleted successfully: ${delFeedbackRes.success}`);
+
+    // Re-add feedback so later assertions have comments if needed
+    await SprintService.addFeedback(
+      newSprint.id,
+      adminAuth.user.id,
+      'Slicing grid gallery kamu sangat responsif di layar mobile!'
+    );
 
     // 7. Review Queue & Instructor Review Submission
     console.log('7️⃣ Testing Dedicated Instructor Review Queue & Review Submission...');
