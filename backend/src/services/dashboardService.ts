@@ -61,12 +61,6 @@ export class DashboardService {
 
     let totalChecklists = allItems.length;
     let totalIndependent = 0;
-    let nextActionItem: {
-      topicId?: string;
-      topicTitle: string;
-      moduleTitle: string;
-      statement: string;
-    } | null = null;
 
     allItems.forEach((item) => {
       const cat = item.category || 'OTHER';
@@ -84,16 +78,20 @@ export class DashboardService {
       } else if (status === 'LEARNING') {
         categoryStats[cat].learning++;
       }
-
-      if (!nextActionItem && status !== 'CAN_DO_INDEPENDENTLY') {
-        nextActionItem = {
-          topicId: item.topicId,
-          topicTitle: item.topicTitle,
-          moduleTitle: item.weekTitle || currentWeek?.title || '',
-          statement: item.statement,
-        };
-      }
     });
+
+    // Find first incomplete item for next-action suggestion (separate from forEach to preserve TS narrowing)
+    const nextRawItem = allItems.find(
+      (item) => (progressMap.get(item.id) || 'NOT_STARTED') !== 'CAN_DO_INDEPENDENTLY'
+    );
+    const nextActionItem = nextRawItem
+      ? {
+          topicId: nextRawItem.topicId,
+          topicTitle: nextRawItem.topicTitle,
+          moduleTitle: nextRawItem.weekTitle || currentWeek?.title || '',
+          statement: nextRawItem.statement,
+        }
+      : null;
 
     // 3. User Sprint stats
     const sevenDaysAgo = new Date();

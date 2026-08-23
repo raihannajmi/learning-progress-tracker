@@ -5,14 +5,17 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Enable corepack (ships with Node 22, manages pnpm version automatically)
+# Enable corepack (bundled with Node 22, auto-manages pnpm version)
 RUN corepack enable
 
-# Set CI=true so pnpm respects onlyBuiltDependencies without interactive prompts
+# CI=true: pnpm non-interactive mode, respects allowBuilds in pnpm-workspace.yaml
 ENV CI=true
 
-# Install dependencies — copy manifests first for layer caching
-COPY package.json pnpm-lock.yaml ./
+# Copy manifests + workspace config (pnpm-workspace.yaml must be present
+# BEFORE pnpm install so allowBuilds is respected — pnpm v11 requirement)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Install all deps (esbuild build script now allowed via pnpm-workspace.yaml)
 RUN pnpm install --frozen-lockfile
 
 # Copy source code and build config
@@ -24,7 +27,7 @@ COPY drizzle ./drizzle
 RUN pnpm build
 
 # -------------------------------------------------------------------
-# Runner Stage (lean production image)
+# Runner Stage (lean production image, no devDeps)
 # -------------------------------------------------------------------
 FROM node:22-alpine AS runner
 
@@ -36,7 +39,8 @@ ENV CI=true
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
+# Production deps only — also needs workspace yaml so esbuild (if any prod dep needs it) is allowed
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
 # Copy compiled output and SQL migrations from builder
