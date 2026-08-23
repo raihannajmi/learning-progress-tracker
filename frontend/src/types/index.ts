@@ -167,6 +167,10 @@ export interface StudentDashboardData {
 		percentage: number;
 	}>;
 	nextAction: {
+		topicId?: string | null;
+		topicTitle?: string;
+		moduleTitle?: string;
+		statement?: string;
 		suggestedFocus: string;
 		minimumTarget: string;
 	};

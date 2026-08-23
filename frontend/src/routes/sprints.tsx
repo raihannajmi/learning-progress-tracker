@@ -190,7 +190,7 @@ function SprintsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="max-w-3xl mx-auto w-full space-y-6">
 			{/* 1. Interactive Focus Session Tracker (Session-Inspired) */}
 			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
 				{status === "IDLE" || status === "COMPLETED" ? (

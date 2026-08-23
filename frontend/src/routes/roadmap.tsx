@@ -128,7 +128,7 @@ function RoadmapPage() {
 		totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
 	return (
-		<div className="space-y-6">
+		<div className="max-w-4xl mx-auto w-full space-y-6">
 			{/* 1. Header Information & Overall Progress */}
 			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
 				<div className="space-y-1">

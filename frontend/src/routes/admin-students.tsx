@@ -245,7 +245,7 @@ function AdminStudentsPage() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="max-w-5xl mx-auto w-full space-y-6">
 			{/* 1. Header */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
 				<div>

@@ -36,17 +36,17 @@ function StudentDashboard() {
 
 	if (isLoading) {
 		return (
-			<div className="max-w-3xl space-y-8 animate-pulse py-4">
-				<div className="h-28 bg-slate-100 rounded-lg" />
+			<div className="max-w-3xl mx-auto w-full space-y-8 animate-pulse py-4">
 				<div className="h-24 bg-slate-100 rounded-lg" />
-				<div className="h-36 bg-slate-100 rounded-lg" />
+				<div className="h-20 bg-slate-100 rounded-lg" />
+				<div className="h-32 bg-slate-100 rounded-lg" />
 			</div>
 		);
 	}
 
 	if (error || !data) {
 		return (
-			<div className="py-12 text-center">
+			<div className="max-w-3xl mx-auto w-full py-12 text-center">
 				<p className="text-xs text-rose-600">Gagal memuat data dashboard.</p>
 			</div>
 		);
@@ -56,58 +56,69 @@ function StudentDashboard() {
 	const totalMins =
 		data.summary.totalMinutesLearned ?? data.summary.totalDurationMinutes ?? 0;
 
-	return (
-		<div className="max-w-4xl space-y-10 py-2">
-			{/* 1. Editorial Focus Hero: Where am I & What to do next */}
-			<section className="space-y-4">
-				<div className="space-y-1">
-					<p className="text-xs font-mono font-medium text-slate-400">
-						Halo, {firstName} • Minggu {data.currentWeek.weekNumber} dari 8
-					</p>
+	// Clean structured topic & module info
+	const activeTopic = data.nextAction?.topicTitle || data.currentWeek.title;
+	const activeModule = data.nextAction?.moduleTitle || data.currentWeek.title;
+	const activeStatement =
+		data.nextAction?.statement || data.currentWeek.description;
 
-					<h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
+	return (
+		<div className="max-w-3xl mx-auto w-full space-y-9 py-2">
+			{/* 1. Contextual Focus Header: Hierarchy = Context -> Module -> Topic -> Statement -> Action */}
+			<section className="space-y-4">
+				<div className="space-y-1.5">
+					<div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+						<span>Halo, {firstName}</span>
+						<span>•</span>
+						<span>Minggu {data.currentWeek.weekNumber} dari 8</span>
+						<span>•</span>
+						<span className="text-slate-600 font-medium">{activeModule}</span>
+					</div>
+
+					<h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-snug">
 						Lanjutkan Belajar:{" "}
-						<span className="text-blue-600">
-							{data.nextAction.suggestedFocus || data.currentWeek.title}
-						</span>
+						<span className="text-blue-600">{activeTopic}</span>
 					</h1>
 
-					<p className="text-xs text-slate-600 leading-relaxed max-w-2xl pt-0.5">
-						{data.currentWeek.description}
-					</p>
+					{activeStatement && (
+						<p className="text-xs text-slate-600 leading-relaxed max-w-2xl pt-0.5">
+							{activeStatement}
+						</p>
+					)}
 				</div>
 
-				{/* Single Contextual Primary Action */}
-				<div className="flex flex-wrap items-center gap-3 pt-2">
+				{/* Single Primary Action */}
+				<div className="flex flex-wrap items-center gap-3.5 pt-1.5">
 					<button
 						type="button"
-						onClick={() => openReflectionModal(null, 25)}
+						onClick={() =>
+							openReflectionModal(data.nextAction?.topicId || null, 25)
+						}
 						className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-2 transition-all cursor-pointer hover:shadow-md"
 					>
 						<Play size={14} className="fill-white" />
-						<span>Mulai Sesi Fokus (25 Menit)</span>
+						<span>Mulai Sesi Fokus — 25 Menit</span>
 					</button>
 
 					<span className="text-xs text-slate-500 font-mono">
-						{totalMins} menit fokus terdokumentasi (
-						{data.summary.habitReachedCount}x target habit ≥25m)
+						{totalMins}m fokus ({data.summary.habitReachedCount}x habit ≥25m)
 					</span>
 				</div>
 			</section>
 
 			<hr className="border-slate-200/80" />
 
-			{/* 2. Syllabus Mastery Progression (Minimal, Unboxed Layout) */}
-			<section className="space-y-4">
+			{/* 2. Syllabus Mastery Progression (Concise, Unboxed Summary) */}
+			<section className="space-y-3.5">
 				<div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
 					<div>
 						<h2 className="text-sm font-bold text-slate-900 tracking-tight">
-							Penguasaan Silabus & Kompetensi Mandiri
+							Progress Belajar Mandiri
 						</h2>
 						<p className="text-xs text-slate-500 mt-0.5">
 							{data.summary.completedChecklists} dari{" "}
-							{data.summary.totalChecklists} poin checklist mandiri telah Anda
-							selesaikan ({data.summary.overallPercentage}%)
+							{data.summary.totalChecklists} kompetensi mandiri tercapai (
+							{data.summary.overallPercentage}%)
 						</p>
 					</div>
 
@@ -120,33 +131,26 @@ function StudentDashboard() {
 					</Link>
 				</div>
 
-				{/* Minimal Category Progress Pills */}
-				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
+				{/* Minimal Progress Category Breakdown */}
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 pt-1">
 					{data.categoryProgress.map((item) => (
-						<div
-							key={item.category}
-							className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1.5"
-						>
-							<div className="flex items-center justify-between text-xs">
-								<span className="font-semibold text-slate-800 text-[11px] font-mono uppercase">
+						<div key={item.category} className="space-y-1 text-xs">
+							<div className="flex items-center justify-between text-[11px] text-slate-700 font-mono">
+								<span className="font-semibold text-slate-800 uppercase">
 									{item.category}
 								</span>
-								<span className="font-mono text-[11px] text-slate-500">
-									{item.percentage}%
+								<span className="text-slate-500">
+									{item.independent}/{item.total} Mandiri ({item.percentage}%)
 								</span>
 							</div>
 
-							{/* Thin progress line */}
-							<div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+							{/* Minimal Line */}
+							<div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
 								<div
 									className="bg-blue-600 h-full rounded-full transition-all duration-300"
 									style={{ width: `${item.percentage}%` }}
 								/>
 							</div>
-
-							<p className="text-[10px] text-slate-500 font-mono">
-								{item.independent}/{item.total} Mandiri
-							</p>
 						</div>
 					))}
 				</div>
@@ -155,7 +159,7 @@ function StudentDashboard() {
 			<hr className="border-slate-200/80" />
 
 			{/* 3. Recent Learning Activity Stream (Chronological Natural List) */}
-			<section className="space-y-4">
+			<section className="space-y-3.5">
 				<div className="flex items-center justify-between">
 					<div>
 						<h2 className="text-sm font-bold text-slate-900 tracking-tight">
@@ -180,9 +184,9 @@ function StudentDashboard() {
 						{data.recentSprints.slice(0, 4).map((sprint) => (
 							<div
 								key={sprint.id}
-								className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+								className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
 							>
-								<div className="space-y-1 min-w-0">
+								<div className="space-y-0.5 min-w-0">
 									<div className="flex items-center gap-2">
 										<span className="font-semibold text-slate-900">
 											{sprint.topic?.title || "Belajar Mandiri"}
@@ -223,7 +227,9 @@ function StudentDashboard() {
 						title="Belum ada catatan sprint belajar"
 						description="Mulai sesi fokus 25 menit pertama Anda untuk membangun kebiasaan belajar konsisten."
 						actionLabel="Mulai Sesi Fokus Pertama"
-						onAction={() => openReflectionModal(null, 25)}
+						onAction={() =>
+							openReflectionModal(data.nextAction?.topicId || null, 25)
+						}
 					/>
 				)}
 			</section>

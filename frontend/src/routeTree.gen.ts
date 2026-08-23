@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminActivityRouteImport } from './routes/admin-activity'
+import { Route as AdminAttentionRouteImport } from './routes/admin-attention'
+import { Route as AdminConfusionsRouteImport } from './routes/admin-confusions'
 import { Route as AdminReviewRouteImport } from './routes/admin-review'
 import { Route as AdminRoadmapRouteImport } from './routes/admin-roadmap'
 import { Route as AdminStudentsRouteImport } from './routes/admin-students'
@@ -27,6 +30,21 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/admin-activity',
+  path: '/admin-activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAttentionRoute = AdminAttentionRouteImport.update({
+  id: '/admin-attention',
+  path: '/admin-attention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminConfusionsRoute = AdminConfusionsRouteImport.update({
+  id: '/admin-confusions',
+  path: '/admin-confusions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminReviewRoute = AdminReviewRouteImport.update({
@@ -68,6 +86,9 @@ const SprintsRoute = SprintsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-activity': typeof AdminActivityRoute
+  '/admin-attention': typeof AdminAttentionRoute
+  '/admin-confusions': typeof AdminConfusionsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
@@ -79,6 +100,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-activity': typeof AdminActivityRoute
+  '/admin-attention': typeof AdminAttentionRoute
+  '/admin-confusions': typeof AdminConfusionsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
@@ -91,6 +115,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-activity': typeof AdminActivityRoute
+  '/admin-attention': typeof AdminAttentionRoute
+  '/admin-confusions': typeof AdminConfusionsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
@@ -104,6 +131,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-activity'
+    | '/admin-attention'
+    | '/admin-confusions'
     | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
@@ -115,6 +145,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/admin-activity'
+    | '/admin-attention'
+    | '/admin-confusions'
     | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
@@ -126,6 +159,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-activity'
+    | '/admin-attention'
+    | '/admin-confusions'
     | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
@@ -138,6 +174,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdminActivityRoute: typeof AdminActivityRoute
+  AdminAttentionRoute: typeof AdminAttentionRoute
+  AdminConfusionsRoute: typeof AdminConfusionsRoute
   AdminReviewRoute: typeof AdminReviewRoute
   AdminRoadmapRoute: typeof AdminRoadmapRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
@@ -161,6 +200,27 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-activity': {
+      id: '/admin-activity'
+      path: '/admin-activity'
+      fullPath: '/admin-activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-attention': {
+      id: '/admin-attention'
+      path: '/admin-attention'
+      fullPath: '/admin-attention'
+      preLoaderRoute: typeof AdminAttentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-confusions': {
+      id: '/admin-confusions'
+      path: '/admin-confusions'
+      fullPath: '/admin-confusions'
+      preLoaderRoute: typeof AdminConfusionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-review': {
@@ -218,6 +278,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdminActivityRoute: AdminActivityRoute,
+  AdminAttentionRoute: AdminAttentionRoute,
+  AdminConfusionsRoute: AdminConfusionsRoute,
   AdminReviewRoute: AdminReviewRoute,
   AdminRoadmapRoute: AdminRoadmapRoute,
   AdminStudentsRoute: AdminStudentsRoute,

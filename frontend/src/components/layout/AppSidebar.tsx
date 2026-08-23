@@ -1,9 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+	AlertCircle,
 	ChevronLeft,
 	ChevronRight,
 	Code2,
 	Compass,
+	Eye,
+	HelpCircle,
 	Layers,
 	LogOut,
 	Map as MapIcon,
@@ -66,6 +69,21 @@ export const AppSidebar: React.FC<Props> = ({
 			to: "/admin",
 			label: "Monitoring Kelas",
 			icon: ShieldCheck,
+		},
+		{
+			to: "/admin-confusions",
+			label: "Hambatan Belajar",
+			icon: HelpCircle,
+		},
+		{
+			to: "/admin-attention",
+			label: "Perlu Perhatian",
+			icon: AlertCircle,
+		},
+		{
+			to: "/admin-activity",
+			label: "Aktivitas & Bukti",
+			icon: Eye,
 		},
 		{
 			to: "/class",

@@ -134,8 +134,8 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 					isCollapsed={isCollapsed}
 					setIsMobileOpen={setIsMobileOpen}
 				/>
-				<main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-					{children}
+				<main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-8 flex flex-col items-center">
+					<div className="w-full max-w-6xl mx-auto">{children}</div>
 				</main>
 			</div>
 

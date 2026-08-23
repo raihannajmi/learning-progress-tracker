@@ -2,17 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircle,
+	ArrowRight,
 	ExternalLink,
-	Eye,
 	Filter,
+	HelpCircle,
 	MessageSquare,
 	Timer,
 	Users,
 } from "lucide-react";
 import React, { useState } from "react";
-import { Pagination } from "../components/common/Pagination.js";
 import { StatCard } from "../components/common/StatCard.js";
-import { StudentDetailModal } from "../components/common/StudentDetailModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import type { AdminDashboardData, ClassGroup } from "../types/index.js";
@@ -25,13 +24,6 @@ function AdminDashboardPage() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
 	const [selectedClassId, setSelectedClassId] = useState<string>("");
-	const [inspectedStudent, setInspectedStudent] = useState<any | null>(null);
-
-	// Pagination states
-	const [attentionPage, setAttentionPage] = useState(1);
-	const [evidencePage, setEvidencePage] = useState(1);
-	const attentionPageSize = 5;
-	const evidencePageSize = 6;
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -62,20 +54,17 @@ function AdminDashboardPage() {
 
 	if (isLoading) {
 		return (
-			<div className="space-y-6">
-				<div className="h-24 bg-white border border-slate-200 rounded-xl animate-pulse" />
+			<div className="max-w-4xl mx-auto w-full space-y-6">
+				<div className="h-20 bg-slate-100 rounded-xl animate-pulse" />
 				<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 					{[1, 2, 3, 4].map((i) => (
 						<div
 							key={i}
-							className="h-24 bg-white border border-slate-200 rounded-xl animate-pulse"
+							className="h-24 bg-slate-100 rounded-xl animate-pulse"
 						/>
 					))}
 				</div>
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					<div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
-					<div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
-				</div>
+				<div className="h-64 bg-slate-100 rounded-xl animate-pulse" />
 			</div>
 		);
 	}
@@ -87,62 +76,33 @@ function AdminDashboardPage() {
 			? Math.round((data.activeStudentsThisWeek / data.totalStudents) * 100)
 			: 0;
 
-	// Paginated attention students
-	const totalAttention = data.studentsNeedingAttention?.length || 0;
-	const totalAttentionPages =
-		Math.ceil(totalAttention / attentionPageSize) || 1;
-	const paginatedAttention = (data.studentsNeedingAttention || []).slice(
-		(attentionPage - 1) * attentionPageSize,
-		attentionPage * attentionPageSize,
-	);
-
-	// Paginated evidence items
-	const totalEvidence = data.recentEvidences?.length || 0;
-	const totalEvidencePages = Math.ceil(totalEvidence / evidencePageSize) || 1;
-	const paginatedEvidence = (data.recentEvidences || []).slice(
-		(evidencePage - 1) * evidencePageSize,
-		evidencePage * evidencePageSize,
-	);
+	const topConfusions = data.commonConfusions?.slice(0, 3) || [];
+	const topAttention = data.studentsNeedingAttention?.slice(0, 3) || [];
+	const topEvidence = data.recentEvidences?.slice(0, 3) || [];
 
 	return (
-		<div className="space-y-6">
+		<div className="max-w-4xl mx-auto w-full space-y-8">
 			{/* 1. Header with Class Selector */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div className="space-y-1">
-					<div className="flex items-center gap-2">
-						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-							Area Pengajar
-						</span>
-						<span className="text-slate-300">•</span>
-						<span className="text-xs font-medium text-slate-600">
-							Monitoring & Asistensi
-						</span>
-					</div>
-
-					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
-						Dashboard Monitoring Dosen & TA
-					</h2>
-
-					<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-						Identifikasi pola kebingungan materi kelas dan pantau keaktifan
-						belajar mahasiswa tanpa harus memeriksa puluhan mahasiswa secara
-						manual.
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+				<div className="space-y-0.5">
+					<h1 className="text-xl font-bold tracking-tight text-slate-900">
+						Monitoring & Kesehatan Kelas
+					</h1>
+					<p className="text-xs text-slate-500 max-w-xl">
+						Ringkasan kondisi belajar mahasiswa, identifikasi hambatan materi,
+						dan temukan mahasiswa yang memerlukan intervensi.
 					</p>
 				</div>
 
 				{/* Class Filter Selector */}
-				<div className="flex items-center gap-2 shrink-0 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-					<Filter size={14} className="text-slate-400" />
+				<div className="flex items-center gap-2 shrink-0 bg-white px-3 py-1.5 rounded-lg border border-slate-200/90 text-xs">
+					<Filter size={13} className="text-slate-400" />
 					<select
 						value={selectedClassId}
-						onChange={(e) => {
-							setSelectedClassId(e.target.value);
-							setAttentionPage(1);
-							setEvidencePage(1);
-						}}
+						onChange={(e) => setSelectedClassId(e.target.value)}
 						className="text-xs font-medium text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
 					>
-						<option value="">Semua Kelas (2 Kelas)</option>
+						<option value="">Semua Kelas</option>
 						{classesList?.map((cls) => (
 							<option key={cls.id} value={cls.id}>
 								{cls.name}
@@ -152,7 +112,7 @@ function AdminDashboardPage() {
 				</div>
 			</div>
 
-			{/* 2. KPI Metrics Grid */}
+			{/* 2. Executive KPI Overview */}
 			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 				<StatCard
 					label="Mahasiswa Aktif Minggu Ini"
@@ -164,237 +124,210 @@ function AdminDashboardPage() {
 				<StatCard
 					label="Total Learning Sprints"
 					value={data.totalSprints}
-					subtext="Sesi sprint tercatat di sistem"
+					subtext="Sesi fokus tercatat"
 					icon={Timer}
 					iconColor="text-emerald-600"
 				/>
 				<StatCard
-					label="Peer Feedback Diberikan"
+					label="Peer & Dosen Feedback"
 					value={data.totalFeedbackGiven}
-					subtext="Total review antar teman sekelas"
+					subtext="Total tanggapan diberikan"
 					icon={MessageSquare}
 					iconColor="text-sky-600"
 				/>
 				<StatCard
-					label="Perlu Perhatian (Pasif)"
+					label="Perlu Perhatian"
 					value={data.studentsNeedingAttention.length}
-					subtext="Tidak ada sprint dalam 7 hari"
+					subtext="Tidak aktif ≥7 hari"
 					icon={AlertCircle}
 					iconColor="text-amber-500"
 				/>
 			</div>
 
-			{/* 3. Main Split Section: Confusion Analytics & Needs Attention */}
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				{/* Left: Common Confusion Topics Analytics */}
-				<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-					<div className="pb-3 border-b border-slate-100">
-						<h3 className="text-sm font-semibold text-slate-900">
-							Analitik Topik Membingungkan (Common Confusions)
-						</h3>
-						<p className="text-xs text-slate-500 mt-0.5">
-							Diagregasi otomatis dari kendala refleksi sprint mahasiswa
-						</p>
-					</div>
-
-					<div className="space-y-3 pt-1">
-						{!data.commonConfusions || data.commonConfusions.length === 0 ? (
-							<p className="text-xs text-slate-400 italic py-6 text-center">
-								Belum ada data kendala materi yang dilaporkan mahasiswa.
-							</p>
-						) : (
-							data.commonConfusions.map((item, idx) => (
-								<div
-									key={idx}
-									className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/50 space-y-2 text-xs"
-								>
-									<div className="flex items-center justify-between gap-2">
-										<span className="font-semibold text-slate-900">
-											{item.topicTitle || item.topic}
-										</span>
-										<span className="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-											{item.mentions} mahasiswa terkendala
-										</span>
-									</div>
-
-									{item.examples && item.examples.length > 0 && (
-										<div className="space-y-1 pl-2 border-l-2 border-amber-200 text-slate-600">
-											{item.examples.slice(0, 2).map((ex, i) => (
-												<p key={i} className="line-clamp-1 italic">
-													"{ex}"
-												</p>
-											))}
-										</div>
-									)}
-								</div>
-							))
-						)}
-					</div>
-				</div>
-
-				{/* Right: Students Needing Attention (>7 days inactive) */}
-				<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col justify-between">
-					<div className="p-6 space-y-4">
-						<div className="flex items-center justify-between pb-3 border-b border-slate-100">
-							<div>
-								<h3 className="text-sm font-semibold text-slate-900">
-									Mahasiswa Perlu Perhatian ({totalAttention})
+			{/* 3. Executive Overview Cards with Clear Drill-Downs */}
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+				{/* Card A: Topik dengan Hambatan Terbanyak */}
+				<div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-4">
+					<div className="space-y-3">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<HelpCircle size={16} className="text-amber-600" />
+								<h3 className="text-sm font-bold text-slate-900">
+									Hambatan Belajar Mahasiswa
 								</h3>
-								<p className="text-xs text-slate-500 mt-0.5">
-									Belum mencatat sprint dalam 7 hari terakhir
-								</p>
 							</div>
-
-							<Link
-								to="/admin-students"
-								className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-							>
-								Kelola Whitelist →
-							</Link>
+							<span className="text-xs font-mono text-slate-400">
+								{data.commonConfusions?.length || 0} topik
+							</span>
 						</div>
 
-						<div className="space-y-2">
-							{totalAttention === 0 ? (
-								<p className="text-xs text-emerald-600 font-medium py-6 text-center">
-									Semua mahasiswa aktif belajar dalam 7 hari terakhir.
+						<p className="text-xs text-slate-500 leading-relaxed">
+							Topik materi yang paling sering dilaporkan membingungkan atau
+							menjadi kendala belajar.
+						</p>
+
+						<div className="space-y-2 pt-1">
+							{topConfusions.length === 0 ? (
+								<p className="text-xs text-slate-400 italic py-2">
+									Belum ada kendala materi yang dilaporkan.
 								</p>
 							) : (
-								paginatedAttention.map((student) => (
-									<button
-										type="button"
-										key={student.id}
-										onClick={() => setInspectedStudent(student)}
-										className="w-full text-left flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs transition-colors cursor-pointer"
+								topConfusions.map((c, i) => (
+									<div
+										key={i}
+										className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs"
 									>
-										<div className="min-w-0">
-											<div className="flex items-center gap-2">
-												<span className="font-semibold text-slate-900 truncate">
-													{student.name}
-												</span>
-												{student.className && (
-													<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-sm shrink-0">
-														{student.className}
-													</span>
-												)}
-											</div>
-											<span className="text-[11px] text-slate-400 font-mono">
-												{student.nim || student.email}
-											</span>
-										</div>
-
-										<div className="flex items-center gap-2 shrink-0">
-											<span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-mono">
-												{student.statusLabel}
-											</span>
-											<Eye size={14} className="text-slate-400" />
-										</div>
-									</button>
+										<span className="font-semibold text-slate-800 truncate">
+											{c.topicTitle || c.topic}
+										</span>
+										<span className="text-[11px] font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shrink-0">
+											{c.mentions} mahasiswa
+										</span>
+									</div>
 								))
 							)}
 						</div>
 					</div>
 
-					{totalAttention > attentionPageSize && (
-						<Pagination
-							currentPage={attentionPage}
-							totalPages={totalAttentionPages}
-							onPageChange={setAttentionPage}
-							pageSize={attentionPageSize}
-							totalItems={totalAttention}
-						/>
-					)}
+					<Link
+						to="/admin-confusions"
+						className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5 pt-2"
+					>
+						<span>Buka Analitik Hambatan Lengkap</span>
+						<ArrowRight size={13} />
+					</Link>
 				</div>
-			</div>
 
-			{/* 4. Recent Evidence Submissions Stream */}
-			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-				<div className="p-6 space-y-4">
-					<div className="flex items-center justify-between pb-3 border-b border-slate-100">
-						<div>
-							<h3 className="text-sm font-semibold text-slate-900">
-								Bukti Pembelajaran Terbaru (Evidence Stream)
-							</h3>
-							<p className="text-xs text-slate-500 mt-0.5">
-								Review cepat submission link GitHub, Loom, atau Live Demo dari
-								mahasiswa
-							</p>
+				{/* Card B: Mahasiswa Perlu Perhatian */}
+				<div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-4">
+					<div className="space-y-3">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<AlertCircle size={16} className="text-rose-600" />
+								<h3 className="text-sm font-bold text-slate-900">
+									Mahasiswa Perlu Perhatian
+								</h3>
+							</div>
+							<span className="text-xs font-mono text-slate-400">
+								{data.studentsNeedingAttention?.length || 0} mahasiswa
+							</span>
 						</div>
 
-						<Link
-							to="/class"
-							search={{ needsFeedback: "true" }}
-							className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-						>
-							Buka Postingan Asistensi di Feed Kelas →
-						</Link>
+						<p className="text-xs text-slate-500 leading-relaxed">
+							Mahasiswa yang belum mencatat sprint dalam 7 hari terakhir atau
+							memerlukan bantuan.
+						</p>
+
+						<div className="space-y-2 pt-1">
+							{topAttention.length === 0 ? (
+								<p className="text-xs text-emerald-600 font-medium py-2">
+									Semua mahasiswa aktif belajar minggu ini.
+								</p>
+							) : (
+								topAttention.map((s) => (
+									<div
+										key={s.id}
+										className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs"
+									>
+										<div className="min-w-0">
+											<p className="font-semibold text-slate-800 truncate">
+												{s.name}
+											</p>
+											<p className="text-[11px] text-slate-400 font-mono">
+												{s.className} • Tidak aktif {s.daysInactive || "≥7"}{" "}
+												hari
+											</p>
+										</div>
+										<span className="text-[11px] font-mono text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200 shrink-0">
+											Pasif
+										</span>
+									</div>
+								))
+							)}
+						</div>
 					</div>
 
-					{totalEvidence === 0 ? (
-						<p className="text-xs text-slate-400 italic py-6 text-center">
-							Belum ada link bukti belajar yang dikirimkan.
-						</p>
-					) : (
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-							{paginatedEvidence.map((ev) => (
-								<div
-									key={ev.id}
-									className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs"
-								>
-									<div className="min-w-0">
-										<div className="flex items-center gap-2">
-											<span className="font-semibold text-slate-900 truncate">
-												{ev.studentName}
-											</span>
-											<span className="text-[10px] text-slate-400 font-mono">
-												({ev.className})
-											</span>
-										</div>
-										<p className="text-slate-600 line-clamp-1 mt-0.5">
-											{ev.whatLearned}
-										</p>
-									</div>
-
-									<div className="flex items-center gap-2 shrink-0">
-										<a
-											href={ev.evidenceUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-										>
-											<span>{ev.evidenceType}</span>
-											<ExternalLink size={11} />
-										</a>
-
-										<Link
-											to="/class"
-											search={{ needsFeedback: "true" }}
-											className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-xs transition-colors"
-										>
-											Tanggapi
-										</Link>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
+					<Link
+						to="/admin-attention"
+						className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5 pt-2"
+					>
+						<span>Periksa Semua Mahasiswa Perlu Perhatian</span>
+						<ArrowRight size={13} />
+					</Link>
 				</div>
-
-				{totalEvidence > evidencePageSize && (
-					<Pagination
-						currentPage={evidencePage}
-						totalPages={totalEvidencePages}
-						onPageChange={setEvidencePage}
-						pageSize={evidencePageSize}
-						totalItems={totalEvidence}
-					/>
-				)}
 			</div>
 
-			<StudentDetailModal
-				isOpen={!!inspectedStudent}
-				onClose={() => setInspectedStudent(null)}
-				student={inspectedStudent}
-			/>
+			{/* 4. Card C: Bukti & Aktivitas Terbaru */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200/90 shadow-xs space-y-4">
+				<div className="flex items-center justify-between pb-3 border-b border-slate-100">
+					<div>
+						<h3 className="text-sm font-bold text-slate-900">
+							Bukti & Aktivitas Pembelajaran Terbaru
+						</h3>
+						<p className="text-xs text-slate-500 mt-0.5">
+							Submisi tautan GitHub, Loom, atau Live Demo dari sesi fokus
+							mahasiswa
+						</p>
+					</div>
+
+					<Link
+						to="/admin-activity"
+						className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+					>
+						<span>Lihat Semua Bukti & Aktivitas</span>
+						<ArrowRight size={13} />
+					</Link>
+				</div>
+
+				{topEvidence.length === 0 ? (
+					<p className="text-xs text-slate-400 italic py-4 text-center">
+						Belum ada link bukti belajar yang dikirimkan.
+					</p>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+						{topEvidence.map((ev) => (
+							<div
+								key={ev.id}
+								className="p-3.5 rounded-lg bg-slate-50 border border-slate-200/70 space-y-2 text-xs flex flex-col justify-between"
+							>
+								<div className="space-y-1">
+									<div className="flex items-center justify-between gap-1">
+										<span className="font-semibold text-slate-900 truncate">
+											{ev.studentName}
+										</span>
+										<span className="text-[10px] text-slate-400 font-mono">
+											{ev.className}
+										</span>
+									</div>
+									<p className="text-slate-600 line-clamp-2 text-[11px]">
+										{ev.whatLearned}
+									</p>
+								</div>
+
+								<div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+									<a
+										href={ev.evidenceUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 hover:text-slate-900 hover:underline"
+									>
+										<span>{ev.evidenceType}</span>
+										<ExternalLink size={11} />
+									</a>
+
+									<Link
+										to="/class"
+										search={{ classId: selectedClassId || undefined }}
+										className="text-[11px] font-semibold text-blue-600 hover:underline"
+									>
+										Buka di Feed →
+									</Link>
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

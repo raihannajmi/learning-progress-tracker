@@ -55,7 +55,12 @@ export class DashboardService {
 
     let totalChecklists = allItems.length;
     let totalIndependent = 0;
-    let nextActionTopic: string | null = null;
+    let nextActionItem: {
+      topicId?: string;
+      topicTitle: string;
+      moduleTitle: string;
+      statement: string;
+    } | null = null;
 
     allItems.forEach((item) => {
       const cat = item.category || 'HTML';
@@ -74,8 +79,13 @@ export class DashboardService {
         categoryStats[cat].learning++;
       }
 
-      if (!nextActionTopic && status !== 'CAN_DO_INDEPENDENTLY') {
-        nextActionTopic = `${item.topicTitle}: ${item.statement}`;
+      if (!nextActionItem && status !== 'CAN_DO_INDEPENDENTLY') {
+        nextActionItem = {
+          topicId: item.topicId,
+          topicTitle: item.topicTitle,
+          moduleTitle: currentWeek?.title || 'HTML & CSS Fundamentals',
+          statement: item.statement,
+        };
       }
     });
 
@@ -122,7 +132,11 @@ export class DashboardService {
         percentage: stats.total > 0 ? Math.round((stats.independent / stats.total) * 100) : 0,
       })),
       nextAction: {
-        suggestedFocus: nextActionTopic || 'Semua checklist dasar selesai! Lanjutkan ke project.',
+        topicId: nextActionItem?.topicId || null,
+        topicTitle: nextActionItem?.topicTitle || 'Eksplorasi Mandiri',
+        moduleTitle: nextActionItem?.moduleTitle || currentWeek?.title || 'HTML & CSS Fundamentals',
+        statement: nextActionItem?.statement || 'Lanjutkan latihan dan dokumentasikan hasil belajar Anda.',
+        suggestedFocus: nextActionItem?.topicTitle || 'Eksplorasi Mandiri',
         minimumTarget: '25 menit focused learning sprint',
       },
       recentSprints: recentSprints.map((s) => ({
