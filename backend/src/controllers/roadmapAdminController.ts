@@ -22,6 +22,16 @@ export class RoadmapAdminController {
     }
   }
 
+  static async reorderWeeks(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { weekOrders } = req.body;
+      const data = await RoadmapAdminService.reorderWeeks(weekOrders);
+      sendSuccess(res, data, 'Urutan minggu silabus berhasil diperbarui');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async setCurrentWeek(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const updated = await RoadmapAdminService.setCurrentWeek(req.params.id as string);

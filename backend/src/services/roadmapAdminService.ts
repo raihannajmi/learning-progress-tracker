@@ -60,6 +60,29 @@ export class RoadmapAdminService {
     return updated;
   }
 
+  static async reorderWeeks(weekOrders: Array<{ id: string; weekNumber: number }>) {
+    await db.transaction(async (tx) => {
+      // Step 1: Set temporary negative week numbers to prevent unique constraint collision
+      for (let i = 0; i < weekOrders.length; i++) {
+        const item = weekOrders[i];
+        await tx
+          .update(roadmapWeeks)
+          .set({ weekNumber: -(1000 + i) })
+          .where(eq(roadmapWeeks.id, item.id));
+      }
+
+      // Step 2: Set target week numbers
+      for (const item of weekOrders) {
+        await tx
+          .update(roadmapWeeks)
+          .set({ weekNumber: item.weekNumber })
+          .where(eq(roadmapWeeks.id, item.id));
+      }
+    });
+
+    return await db.select().from(roadmapWeeks).orderBy(asc(roadmapWeeks.weekNumber));
+  }
+
   static async setCurrentWeek(id: string) {
     await db.update(roadmapWeeks).set({ isCurrent: false });
     const [updated] = await db

@@ -18,6 +18,7 @@ import {
 import {
   createWeekSchema,
   updateWeekSchema,
+  reorderWeeksSchema,
   createTopicSchema,
   updateTopicSchema,
   createChecklistSchema,
@@ -78,6 +79,13 @@ apiRouter.post(
   requireRole('ADMIN'),
   validateRequest(createWeekSchema),
   RoadmapAdminController.createWeek
+);
+apiRouter.patch(
+  '/admin/roadmap/weeks/reorder',
+  authenticate,
+  requireRole('ADMIN'),
+  validateRequest(reorderWeeksSchema),
+  RoadmapAdminController.reorderWeeks
 );
 apiRouter.patch(
   '/admin/roadmap/weeks/:id',

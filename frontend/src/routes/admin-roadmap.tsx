@@ -3,7 +3,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import {
 	AlertTriangle,
+	ArrowDown,
+	ArrowUp,
+	ArrowUpDown,
 	BookOpen,
+	Check,
 	ChevronDown,
 	ChevronUp,
 	Edit2,
@@ -49,6 +53,9 @@ function AdminRoadmapPage() {
 	const queryClient = useQueryClient();
 
 	// Modal States
+	const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+	const [reorderList, setReorderList] = useState<RoadmapWeek[]>([]);
+
 	const [weekModalData, setWeekModalData] = useState<{
 		isOpen: boolean;
 		week?: RoadmapWeek | null;
@@ -134,6 +141,52 @@ function AdminRoadmapPage() {
 			setWeekModalData({ isOpen: false, week: null });
 		},
 	});
+
+	const reorderWeeksMutation = useMutation({
+		mutationFn: async (
+			weekOrders: Array<{ id: string; weekNumber: number }>,
+		) => {
+			const res: any = await api.patch("/admin/roadmap/weeks/reorder", {
+				weekOrders,
+			});
+			return res.data;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
+			setIsReorderModalOpen(false);
+		},
+	});
+
+	const handleSwapAdjacent = (indexA: number, indexB: number) => {
+		if (!roadmapData) return;
+		if (
+			indexA < 0 ||
+			indexA >= roadmapData.length ||
+			indexB < 0 ||
+			indexB >= roadmapData.length
+		)
+			return;
+
+		const cloned = [...roadmapData];
+		const temp = cloned[indexA];
+		cloned[indexA] = cloned[indexB];
+		cloned[indexB] = temp;
+
+		const payload = cloned.map((w, idx) => ({
+			id: w.id,
+			weekNumber: idx + 1,
+		}));
+
+		reorderWeeksMutation.mutate(payload);
+	};
+
+	const moveReorderItem = (fromIndex: number, toIndex: number) => {
+		if (toIndex < 0 || toIndex >= reorderList.length) return;
+		const updated = [...reorderList];
+		const [moved] = updated.splice(fromIndex, 1);
+		updated.splice(toIndex, 0, moved);
+		setReorderList(updated);
+	};
 
 	const setCurrentWeekMutation = useMutation({
 		mutationFn: async (id: string) => {
@@ -250,14 +303,28 @@ function AdminRoadmapPage() {
 					</p>
 				</div>
 
-				<button
-					type="button"
-					onClick={() => setWeekModalData({ isOpen: true, week: null })}
-					className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-				>
-					<Plus size={14} />
-					<span>Tambah Minggu Silabus</span>
-				</button>
+				<div className="flex items-center gap-2 flex-wrap shrink-0 self-start sm:self-center">
+					<button
+						type="button"
+						onClick={() => {
+							setReorderList([...(roadmapData || [])]);
+							setIsReorderModalOpen(true);
+						}}
+						className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+					>
+						<ArrowUpDown size={14} className="text-slate-500" />
+						<span>Atur Urutan Silabus</span>
+					</button>
+
+					<button
+						type="button"
+						onClick={() => setWeekModalData({ isOpen: true, week: null })}
+						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+					>
+						<Plus size={14} />
+						<span>Tambah Minggu Silabus</span>
+					</button>
+				</div>
 			</div>
 
 			{/* 2. Main Roadmap Weeks Accordion List */}
@@ -268,7 +335,7 @@ function AdminRoadmapPage() {
 				</div>
 			) : roadmapData && roadmapData.length > 0 ? (
 				<div className="space-y-4">
-					{roadmapData.map((week) => {
+					{roadmapData.map((week, idx) => {
 						const isExpanded = !!expandedWeeks[week.id];
 						const totalChecklists = week.topics.reduce(
 							(acc, t) => acc + (t.checklists?.length || 0),
@@ -334,6 +401,32 @@ function AdminRoadmapPage() {
 
 									{/* Week Actions */}
 									<div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+										{/* Quick Swap Up/Down */}
+										<div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50 mr-1">
+											<button
+												type="button"
+												onClick={() => handleSwapAdjacent(idx, idx - 1)}
+												disabled={idx === 0 || reorderWeeksMutation.isPending}
+												title="Pindahkan ke pekan sebelumnya (Naik)"
+												className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+											>
+												<ArrowUp size={13} />
+											</button>
+											<div className="w-px h-3 bg-slate-200" />
+											<button
+												type="button"
+												onClick={() => handleSwapAdjacent(idx, idx + 1)}
+												disabled={
+													idx === (roadmapData?.length || 0) - 1 ||
+													reorderWeeksMutation.isPending
+												}
+												title="Pindahkan ke pekan berikutnya (Turun)"
+												className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+											>
+												<ArrowDown size={13} />
+											</button>
+										</div>
+
 										{!week.isCurrent && (
 											<button
 												type="button"
@@ -964,6 +1057,106 @@ function AdminRoadmapPage() {
 								className="px-4 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs disabled:opacity-50 cursor-pointer"
 							>
 								{deleteMutation.isPending ? "Menghapus..." : "Ya, Hapus"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* 6. Reorder Weeks Modal */}
+			{isReorderModalOpen && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+					<div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] flex flex-col">
+						<div className="flex items-center justify-between border-b border-slate-100 pb-3">
+							<div>
+								<h3 className="text-sm font-semibold text-slate-900">
+									Atur Ulang Urutan Silabus & Roadmap
+								</h3>
+								<p className="text-xs text-slate-500 mt-0.5">
+									Gunakan tombol Naik/Turun untuk menukar urutan pekan materi
+									perkuliahan.
+								</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => setIsReorderModalOpen(false)}
+								className="text-slate-400 hover:text-slate-600 cursor-pointer"
+							>
+								<X size={16} />
+							</button>
+						</div>
+
+						<div className="space-y-2 overflow-y-auto flex-1 pr-1 py-1">
+							{reorderList.map((week, idx) => (
+								<div
+									key={week.id}
+									className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-white transition-colors gap-3 text-xs"
+								>
+									<div className="flex items-center gap-2.5 min-w-0">
+										<span className="w-6 h-6 rounded-md bg-blue-50 text-blue-700 font-bold font-mono text-[11px] flex items-center justify-center shrink-0">
+											{idx + 1}
+										</span>
+										<div className="min-w-0">
+											<p className="font-semibold text-slate-900 truncate">
+												{week.title}
+											</p>
+											<p className="text-[11px] text-slate-400">
+												{week.topics.length} Topik • Semula Minggu{" "}
+												{week.weekNumber}
+											</p>
+										</div>
+									</div>
+
+									<div className="flex items-center gap-1 shrink-0">
+										<button
+											type="button"
+											onClick={() => moveReorderItem(idx, idx - 1)}
+											disabled={idx === 0}
+											className="p-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+											title="Pindah ke atas"
+										>
+											<ArrowUp size={13} />
+										</button>
+										<button
+											type="button"
+											onClick={() => moveReorderItem(idx, idx + 1)}
+											disabled={idx === reorderList.length - 1}
+											className="p-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+											title="Pindah ke bawah"
+										>
+											<ArrowDown size={13} />
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+
+						<div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+							<button
+								type="button"
+								onClick={() => setIsReorderModalOpen(false)}
+								className="px-3.5 py-1.5 text-xs text-slate-600 hover:text-slate-800 cursor-pointer"
+							>
+								Batal
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									const payload = reorderList.map((w, idx) => ({
+										id: w.id,
+										weekNumber: idx + 1,
+									}));
+									reorderWeeksMutation.mutate(payload);
+								}}
+								disabled={reorderWeeksMutation.isPending}
+								className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+							>
+								<Check size={13} />
+								<span>
+									{reorderWeeksMutation.isPending
+										? "Menyimpan..."
+										: "Simpan Urutan Baru"}
+								</span>
 							</button>
 						</div>
 					</div>

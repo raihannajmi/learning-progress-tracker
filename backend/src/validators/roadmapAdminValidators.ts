@@ -9,6 +9,19 @@ export const createWeekSchema = z.object({
   }),
 });
 
+export const reorderWeeksSchema = z.object({
+  body: z.object({
+    weekOrders: z
+      .array(
+        z.object({
+          id: z.string({ required_error: 'ID minggu wajib diisi' }),
+          weekNumber: z.number().min(1),
+        })
+      )
+      .min(1, 'Daftar minggu harus berisi minimal 1 item'),
+  }),
+});
+
 export const updateWeekSchema = z.object({
   params: z.object({
     id: z.string({ required_error: 'ID minggu wajib disertakan' }),
