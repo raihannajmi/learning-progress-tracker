@@ -3,8 +3,45 @@ import { users, classes, learningSprints, checklistProgress } from '../db/schema
 import { eq, and, sql, desc, or, ilike } from 'drizzle-orm';
 
 export class AdminStudentService {
-  static async listStudents(filters?: { classId?: string; search?: string }) {
-    let baseQuery = db
+  static async listStudents(filters?: {
+    classId?: string;
+    search?: string;
+    status?: 'all' | 'active' | 'inactive';
+    page?: number;
+    limit?: number;
+  }) {
+    const page = Math.max(1, Number(filters?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(filters?.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    const conditions: any[] = [eq(users.role, 'STUDENT')];
+
+    if (filters?.classId) {
+      conditions.push(eq(users.classId, filters.classId));
+    }
+    if (filters?.status === 'active') {
+      conditions.push(eq(users.isActive, true));
+    } else if (filters?.status === 'inactive') {
+      conditions.push(eq(users.isActive, false));
+    }
+    if (filters?.search && filters.search.trim()) {
+      const s = `%${filters.search.trim()}%`;
+      conditions.push(or(ilike(users.name, s), ilike(users.email, s), ilike(users.nim, s)));
+    }
+
+    const whereClause = and(...conditions);
+
+    // 1. Get total count
+    const [countResult] = await db
+      .select({ count: sql<number>`count(distinct ${users.id})::int` })
+      .from(users)
+      .where(whereClause);
+
+    const total = countResult?.count || 0;
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    // 2. Query paginated students
+    const students = await db
       .select({
         id: users.id,
         name: users.name,
@@ -25,25 +62,21 @@ export class AdminStudentService {
       .leftJoin(classes, eq(users.classId, classes.id))
       .leftJoin(learningSprints, eq(users.id, learningSprints.userId))
       .leftJoin(checklistProgress, eq(users.id, checklistProgress.userId))
-      .where(eq(users.role, 'STUDENT'))
-      .$dynamic();
-
-    const conditions: any[] = [eq(users.role, 'STUDENT')];
-
-    if (filters?.classId) {
-      conditions.push(eq(users.classId, filters.classId));
-    }
-    if (filters?.search) {
-      const s = `%${filters.search}%`;
-      conditions.push(or(ilike(users.name, s), ilike(users.email, s), ilike(users.nim, s)));
-    }
-
-    const students = await baseQuery
-      .where(and(...conditions))
+      .where(whereClause)
       .groupBy(users.id, classes.name)
-      .orderBy(users.name);
+      .orderBy(users.name)
+      .limit(limit)
+      .offset(offset);
 
-    return students;
+    return {
+      data: students,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    };
   }
 
   static async addStudent(data: {

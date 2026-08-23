@@ -1,28 +1,62 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useSearch,
+} from "@tanstack/react-router";
 import { Filter, MessageSquare } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
-import type { ClassGroup, LearningSprint } from "../types/index.js";
+import type {
+	ClassGroup,
+	LearningSprint,
+	PaginatedResponse,
+} from "../types/index.js";
 
-export const Route = createFileRoute("/class")({ component: ClassFeedPage });
+interface ClassSearchParams {
+	page?: number;
+	limit?: number;
+	classId?: string;
+}
+
+export const Route = createFileRoute("/class")({
+	validateSearch: (search: Record<string, unknown>): ClassSearchParams => {
+		return {
+			page: Number(search.page) || 1,
+			limit: Number(search.limit) || 10,
+			classId: (search.classId as string) || undefined,
+		};
+	},
+	component: ClassFeedPage,
+});
 
 function ClassFeedPage() {
 	const navigate = useNavigate();
+	const searchParams = useSearch({ from: "/class" });
 	const { user, isAuthenticated } = useAuthStore();
-	const [selectedClassId, setSelectedClassId] = useState<string>("");
-	const [currentPage, setCurrentPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+
+	const currentPage = searchParams.page || 1;
+	const pageSize = searchParams.limit || 10;
+	const selectedClassId = searchParams.classId || user?.classId || "";
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
 			navigate({ to: "/" });
 		}
 	}, [isAuthenticated, navigate]);
+
+	const updateFilters = (updates: Partial<ClassSearchParams>) => {
+		navigate({
+			search: (prev) => ({
+				...prev,
+				...updates,
+			}),
+		});
+	};
 
 	// Fetch classes for switcher
 	const { data: classesList } = useQuery<ClassGroup[]>({
@@ -34,25 +68,28 @@ function ClassFeedPage() {
 		enabled: isAuthenticated,
 	});
 
-	// Set default class to student's class
-	React.useEffect(() => {
-		if (user?.classId && !selectedClassId) {
-			setSelectedClassId(user.classId);
-		} else if (classesList && classesList.length > 0 && !selectedClassId) {
-			setSelectedClassId(classesList[0].id);
-		}
-	}, [user, classesList, selectedClassId]);
-
-	// Fetch Sprints for class
-	const { data: sprints, isLoading } = useQuery<LearningSprint[]>({
-		queryKey: ["sprints", { classId: selectedClassId }],
+	// Fetch Sprints for class (Server-Side Paginated)
+	const { data: sprintResponse, isLoading } = useQuery<
+		PaginatedResponse<LearningSprint>
+	>({
+		queryKey: [
+			"classSprints",
+			{ classId: selectedClassId, page: currentPage, limit: pageSize },
+		],
 		queryFn: async () => {
-			const param = selectedClassId ? `?classId=${selectedClassId}` : "";
-			const res: any = await api.get(`/sprints${param}`);
-			return res.data;
+			const params = new URLSearchParams();
+			params.set("page", String(currentPage));
+			params.set("limit", String(pageSize));
+			if (selectedClassId) params.set("classId", selectedClassId);
+
+			const res: any = await api.get(`/sprints?${params.toString()}`);
+			return res;
 		},
 		enabled: isAuthenticated,
 	});
+
+	const sprints = sprintResponse?.data || [];
+	const pagination = sprintResponse?.pagination;
 
 	const activeClassName =
 		classesList?.find((c) => c.id === selectedClassId)?.name || "Semua Kelas";
@@ -87,7 +124,12 @@ function ClassFeedPage() {
 					<Filter size={14} className="text-slate-400" />
 					<select
 						value={selectedClassId}
-						onChange={(e) => setSelectedClassId(e.target.value)}
+						onChange={(e) =>
+							updateFilters({
+								classId: e.target.value || undefined,
+								page: 1,
+							})
+						}
 						className="text-xs font-medium text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
 					>
 						<option value="">Semua Kelas</option>
@@ -109,21 +151,21 @@ function ClassFeedPage() {
 					</div>
 				) : sprints && sprints.length > 0 ? (
 					<>
-						{sprints
-							.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-							.map((sprint) => (
-								<PeerFeedbackCard key={sprint.id} sprint={sprint} />
-							))}
+						{sprints.map((sprint) => (
+							<PeerFeedbackCard key={sprint.id} sprint={sprint} />
+						))}
 
-						<Pagination
-							currentPage={currentPage}
-							totalPages={Math.ceil(sprints.length / pageSize) || 1}
-							onPageChange={setCurrentPage}
-							pageSize={pageSize}
-							totalItems={sprints.length}
-							onPageSizeChange={setPageSize}
-							pageSizeOptions={[5, 10, 20]}
-						/>
+						{pagination && pagination.totalPages > 1 && (
+							<Pagination
+								currentPage={currentPage}
+								totalPages={pagination.totalPages}
+								onPageChange={(page) => updateFilters({ page })}
+								pageSize={pageSize}
+								totalItems={pagination.total}
+								onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
+								pageSizeOptions={[5, 10, 20]}
+							/>
+						)}
 					</>
 				) : (
 					<EmptyState

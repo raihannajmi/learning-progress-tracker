@@ -12,14 +12,55 @@ export class SprintController {
         limit?: string;
       };
 
-      const data = await SprintService.listSprints({
+      const result = await SprintService.listSprints({
         classId,
         userId,
         page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 20,
+        limit: limit ? parseInt(limit, 10) : 10,
       });
 
-      sendSuccess(res, data, 'Daftar learning sprint');
+      sendSuccess(res, result.data, 'Daftar learning sprint', 200, result.pagination);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listReviews(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { classId, status, search, page, limit } = req.query as {
+        classId?: string;
+        status?: 'ALL' | 'PENDING' | 'REVIEWED';
+        search?: string;
+        page?: string;
+        limit?: string;
+      };
+
+      const result = await SprintService.listReviewQueue({
+        classId,
+        status,
+        search,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+
+      sendSuccess(res, result.data, 'Daftar antrean review asistensi', 200, result.pagination);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitReview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const sprintId = req.params.sprintId as string;
+      const instructorId = req.user!.id;
+      const { instructorFeedback, reviewStatus } = req.body;
+
+      const data = await SprintService.submitInstructorReview(sprintId, instructorId, {
+        instructorFeedback,
+        reviewStatus,
+      });
+
+      sendSuccess(res, data, 'Feedback dosen berhasil disimpan!');
     } catch (error) {
       next(error);
     }

@@ -1,26 +1,46 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useSearch,
+} from "@tanstack/react-router";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import {
-	Code2,
 	Eye,
 	FileSpreadsheet,
-	Filter,
-	Globe,
 	Plus,
 	Search,
 	Trash2,
+	UserCheck,
 	X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as Yup from "yup";
+import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { StudentDetailModal } from "../components/common/StudentDetailModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
-import type { ClassGroup } from "../types/index.js";
+import type { ClassGroup, PaginatedResponse, User } from "../types/index.js";
+
+interface StudentSearchParams {
+	page?: number;
+	limit?: number;
+	classId?: string;
+	search?: string;
+	status?: "all" | "active" | "inactive";
+}
 
 export const Route = createFileRoute("/admin-students")({
+	validateSearch: (search: Record<string, unknown>): StudentSearchParams => {
+		return {
+			page: Number(search.page) || 1,
+			limit: Number(search.limit) || 10,
+			classId: (search.classId as string) || undefined,
+			search: (search.search as string) || undefined,
+			status: (search.status as "all" | "active" | "inactive") || "all",
+		};
+	},
 	component: AdminStudentsPage,
 });
 
@@ -43,13 +63,17 @@ const SingleStudentSchema = Yup.object().shape({
 
 function AdminStudentsPage() {
 	const navigate = useNavigate();
+	const searchParams = useSearch({ from: "/admin-students" });
 	const { user, isAuthenticated } = useAuthStore();
 	const queryClient = useQueryClient();
 
-	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedClassFilter, setSelectedClassFilter] = useState("");
-	const [currentPage, setCurrentPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const currentPage = searchParams.page || 1;
+	const pageSize = searchParams.limit || 10;
+	const selectedClassFilter = searchParams.classId || "";
+	const currentSearch = searchParams.search || "";
+	const currentStatus = searchParams.status || "all";
+
+	const [searchInput, setSearchInput] = useState(currentSearch);
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 	const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 	const [batchClassId, setBatchClassId] = useState("");
@@ -69,6 +93,37 @@ function AdminStudentsPage() {
 		}
 	}, [isAuthenticated, user, navigate]);
 
+	// Sync search input
+	useEffect(() => {
+		setSearchInput(currentSearch);
+	}, [currentSearch]);
+
+	// Debounce search to URL
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (searchInput !== currentSearch) {
+				navigate({
+					search: (prev) => ({
+						...prev,
+						search: searchInput.trim() || undefined,
+						page: 1,
+					}),
+				});
+			}
+		}, 350);
+
+		return () => clearTimeout(timer);
+	}, [searchInput, currentSearch, navigate]);
+
+	const updateFilters = (updates: Partial<StudentSearchParams>) => {
+		navigate({
+			search: (prev) => ({
+				...prev,
+				...updates,
+			}),
+		});
+	};
+
 	// Fetch Classes
 	const { data: classesList } = useQuery<ClassGroup[]>({
 		queryKey: ["classes"],
@@ -76,22 +131,40 @@ function AdminStudentsPage() {
 			const res: any = await api.get("/classes");
 			return res.data;
 		},
+		enabled: isAuthenticated && user?.role === "ADMIN",
 	});
 
-	// Fetch Students Whitelist
-	const { data: students, isLoading } = useQuery<any[]>({
+	// Fetch Students Whitelist (Server-Side Paginated)
+	const { data: studentResponse, isLoading } = useQuery<
+		PaginatedResponse<User>
+	>({
 		queryKey: [
 			"adminStudents",
-			{ classId: selectedClassFilter, search: searchQuery },
+			{
+				page: currentPage,
+				limit: pageSize,
+				classId: selectedClassFilter,
+				search: currentSearch,
+				status: currentStatus,
+			},
 		],
 		queryFn: async () => {
 			const params = new URLSearchParams();
-			if (selectedClassFilter) params.append("classId", selectedClassFilter);
-			if (searchQuery) params.append("search", searchQuery);
+			params.set("page", String(currentPage));
+			params.set("limit", String(pageSize));
+			if (selectedClassFilter) params.set("classId", selectedClassFilter);
+			if (currentSearch) params.set("search", currentSearch);
+			if (currentStatus && currentStatus !== "all")
+				params.set("status", currentStatus);
+
 			const res: any = await api.get(`/admin/students?${params.toString()}`);
-			return res.data;
+			return res;
 		},
+		enabled: isAuthenticated && user?.role === "ADMIN",
 	});
+
+	const students = studentResponse?.data || [];
+	const pagination = studentResponse?.pagination;
 
 	// Add Single Student Mutation
 	const addStudentMutation = useMutation({
@@ -109,28 +182,27 @@ function AdminStudentsPage() {
 	const batchAddMutation = useMutation({
 		mutationFn: async ({
 			classId,
-			students,
+			studentsList,
 		}: {
 			classId: string;
-			students: any[];
+			studentsList: any[];
 		}) => {
 			const res: any = await api.post("/admin/students/batch", {
 				classId,
-				students,
+				students: studentsList,
 			});
 			return res.data;
 		},
 		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["adminStudents"] });
 			setBatchResult(data);
-			setBatchText("");
 		},
 	});
 
 	// Delete Mutation
-	const deleteMutation = useMutation({
-		mutationFn: async (studentId: string) => {
-			const res: any = await api.delete(`/admin/students/${studentId}`);
+	const deleteStudentMutation = useMutation({
+		mutationFn: async (id: string) => {
+			const res: any = await api.delete(`/admin/students/${id}`);
 			return res.data;
 		},
 		onSuccess: () => {
@@ -138,82 +210,77 @@ function AdminStudentsPage() {
 		},
 	});
 
-	const handleProcessBatch = () => {
-		if (!batchClassId || !batchText.trim()) return;
-
-		const lines = batchText.split("\n");
+	const handleBatchParseAndSubmit = () => {
+		if (!batchClassId) {
+			alert("Pilih kelas terlebih dahulu!");
+			return;
+		}
+		const lines = batchText.split("\n").filter((l) => l.trim().length > 0);
 		const parsedStudents: any[] = [];
 
 		for (const line of lines) {
-			const parts = line.split(/[,;\t]+/).map((p) => p.trim());
+			const parts = line.split(/[,\t|]/).map((p) => p.trim());
 			if (parts.length >= 3) {
 				parsedStudents.push({
 					name: parts[0],
 					email: parts[1],
 					nim: parts[2],
-					githubRepoUrl: parts[3] || "",
-					githubPageUrl: parts[4] || "",
+					githubRepoUrl: parts[3] || undefined,
+					githubPageUrl: parts[4] || undefined,
 				});
 			}
 		}
 
-		if (parsedStudents.length > 0) {
-			batchAddMutation.mutate({
-				classId: batchClassId,
-				students: parsedStudents,
-			});
+		if (parsedStudents.length === 0) {
+			alert(
+				"Format baris tidak valid! Gunakan format: Nama, Email, NIM per baris.",
+			);
+			return;
 		}
-	};
 
-	const totalStudentsCount = students?.length || 0;
-	const totalPages = Math.ceil(totalStudentsCount / pageSize) || 1;
-	const paginatedStudents = (students || []).slice(
-		(currentPage - 1) * pageSize,
-		currentPage * pageSize,
-	);
+		batchAddMutation.mutate({
+			classId: batchClassId,
+			studentsList: parsedStudents,
+		});
+	};
 
 	return (
 		<div className="space-y-6">
-			{/* 1. Header & Quick Actions */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div className="space-y-1">
+			{/* 1. Header */}
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+				<div>
 					<div className="flex items-center gap-2">
-						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-							Administrasi
+						<span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+							Area Dosen & Asisten Dosen
 						</span>
 						<span className="text-slate-300">•</span>
-						<span className="text-xs font-medium text-slate-600">
+						<span className="text-xs font-medium text-slate-500 font-mono">
 							Whitelist Google OAuth
 						</span>
 					</div>
-
-					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
-						Manajemen Whitelist Mahasiswa
-					</h2>
-
-					<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-						Sistem menggunakan Google OAuth berbasis whitelist. Hanya mahasiswa
-						yang emailnya terdaftar yang dapat masuk dan mencatat progres.
+					<h1 className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
+						Daftar & Hak Akses Mahasiswa
+					</h1>
+					<p className="text-xs text-slate-500 mt-1 max-w-xl">
+						Kelola daftar mahasiswa yang diizinkan login melalui Google OAuth
+						dan pantau akun per kelas perkuliahan.
 					</p>
 				</div>
 
-				<div className="flex items-center gap-2.5 shrink-0">
+				<div className="flex items-center gap-2 shrink-0">
 					<button
 						type="button"
-						onClick={() => {
-							setBatchResult(null);
-							setIsBatchModalOpen(true);
-						}}
-						className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+						onClick={() => setIsBatchModalOpen(true)}
+						className="px-3.5 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
 					>
-						<FileSpreadsheet size={14} />
-						<span>Batch Import CSV</span>
+						<FileSpreadsheet size={14} className="text-slate-500" />
+						<span>Impor Batch CSV</span>
 					</button>
 
 					<button
 						type="button"
 						onClick={() => setIsAddModalOpen(true)}
-						className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+						className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 					>
 						<Plus size={14} />
 						<span>Tambah Mahasiswa</span>
@@ -221,155 +288,108 @@ function AdminStudentsPage() {
 				</div>
 			</div>
 
-			{/* 2. Filters & Search Bar */}
-			<div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-				<div className="relative flex-1 max-w-md">
-					<Search
-						size={15}
-						className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-					/>
-					<input
-						type="text"
-						placeholder="Cari nama, email, atau NIM..."
-						value={searchQuery}
-						onChange={(e) => {
-							setSearchQuery(e.target.value);
-							setCurrentPage(1);
-						}}
-						className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-					/>
-				</div>
+			{/* 2. Filter Bar */}
+			<div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+				<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+					<div className="sm:col-span-2 relative">
+						<Search
+							size={15}
+							className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+						/>
+						<input
+							type="text"
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+							placeholder="Cari berdasarkan nama lengkap, email, atau NIM..."
+							className="w-full pl-9 pr-3.5 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+						/>
+					</div>
 
-				<div className="flex items-center gap-2">
-					<Filter size={14} className="text-slate-400" />
-					<select
-						value={selectedClassFilter}
-						onChange={(e) => {
-							setSelectedClassFilter(e.target.value);
-							setCurrentPage(1);
-						}}
-						className="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
-					>
-						<option value="">Semua Kelas</option>
-						{classesList?.map((c) => (
-							<option key={c.id} value={c.id}>
-								{c.name}
-							</option>
-						))}
-					</select>
+					<div>
+						<select
+							value={selectedClassFilter}
+							onChange={(e) =>
+								updateFilters({
+									classId: e.target.value || undefined,
+									page: 1,
+								})
+							}
+							className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+						>
+							<option value="">-- Semua Kelas Mahasiswa --</option>
+							{classesList?.map((c) => (
+								<option key={c.id} value={c.id}>
+									{c.name} ({c.academicTerm})
+								</option>
+							))}
+						</select>
+					</div>
 				</div>
 			</div>
 
-			{/* 3. Students Data Table */}
+			{/* 3. Students Table */}
 			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-				<div className="overflow-x-auto">
-					<table className="w-full text-left text-xs">
-						<thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-							<tr>
-								<th className="px-5 py-3">Mahasiswa</th>
-								<th className="px-4 py-3">NIM</th>
-								<th className="px-4 py-3">Kelas</th>
-								<th className="px-4 py-3">Aktivitas</th>
-								<th className="px-4 py-3">Portfolio</th>
-								<th className="px-4 py-3 text-right">Aksi</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-slate-100">
-							{isLoading ? (
-								<tr>
-									<td
-										colSpan={6}
-										className="px-5 py-8 text-center text-slate-400"
-									>
-										Memuat daftar whitelist mahasiswa...
-									</td>
+				{isLoading ? (
+					<div className="p-8 space-y-4 animate-pulse">
+						{[1, 2, 3, 4, 5].map((i) => (
+							<div key={i} className="h-12 bg-slate-100 rounded-lg" />
+						))}
+					</div>
+				) : students.length > 0 ? (
+					<div className="overflow-x-auto">
+						<table className="w-full text-left text-xs border-collapse">
+							<thead>
+								<tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
+									<th className="py-3 px-4">Mahasiswa</th>
+									<th className="py-3 px-4">NIM</th>
+									<th className="py-3 px-4">Kelas</th>
+									<th className="py-3 px-4">Progres Mandiri</th>
+									<th className="py-3 px-4">Sprint</th>
+									<th className="py-3 px-4 text-right">Aksi</th>
 								</tr>
-							) : paginatedStudents && paginatedStudents.length > 0 ? (
-								paginatedStudents.map((st) => (
+							</thead>
+							<tbody className="divide-y divide-slate-100">
+								{students.map((student) => (
 									<tr
-										key={st.id}
-										className="hover:bg-slate-50/60 transition-colors"
+										key={student.id}
+										className="hover:bg-slate-50/70 transition-colors"
 									>
-										<td className="px-5 py-3">
+										<td className="py-3.5 px-4">
 											<div className="flex items-center gap-2.5">
-												<div className="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-xs text-slate-700 shrink-0">
-													{st.avatarUrl ? (
-														<img
-															src={st.avatarUrl}
-															alt={st.name}
-															className="w-full h-full object-cover rounded-md"
-														/>
-													) : (
-														st.name.charAt(0).toUpperCase()
-													)}
+												<div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-[11px] text-slate-700 shrink-0">
+													{student.name.charAt(0).toUpperCase()}
 												</div>
 												<div className="min-w-0">
-													<span className="font-semibold text-slate-900 block truncate">
-														{st.name}
-													</span>
-													<span className="text-[11px] text-slate-400 font-mono">
-														{st.email}
-													</span>
+													<p className="font-semibold text-slate-900 truncate">
+														{student.name}
+													</p>
+													<p className="text-[11px] text-slate-400 font-mono">
+														{student.email}
+													</p>
 												</div>
 											</div>
 										</td>
-
-										<td className="px-4 py-3 font-mono font-medium text-slate-600">
-											{st.nim || "-"}
+										<td className="py-3.5 px-4 font-mono text-slate-600">
+											{student.nim || "-"}
 										</td>
-
-										<td className="px-4 py-3">
-											<span className="px-2 py-0.5 rounded-sm bg-slate-100 text-slate-700 font-medium text-[11px]">
-												{st.className || "-"}
+										<td className="py-3.5 px-4 text-slate-700">
+											<span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-sm text-[11px]">
+												{student.className || "Belum ada kelas"}
 											</span>
 										</td>
-
-										<td className="px-4 py-3">
-											<span className="font-mono text-blue-600 font-semibold">
-												{st.sprintCount || 0} sprint
-											</span>
-											<span className="text-slate-400 text-[11px] ml-1">
-												({st.checkedCount || 0} mandiri)
-											</span>
+										<td className="py-3.5 px-4 font-mono text-slate-700">
+											{student.checkedCount || 0} butir
 										</td>
-
-										<td className="px-4 py-3">
-											<div className="flex items-center gap-2">
-												{st.githubRepoUrl && (
-													<a
-														href={st.githubRepoUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="p-1 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-sm"
-														title="GitHub Repo"
-													>
-														<Code2 size={14} />
-													</a>
-												)}
-												{st.githubPageUrl && (
-													<a
-														href={st.githubPageUrl}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="p-1 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-sm"
-														title="GitHub Pages Live"
-													>
-														<Globe size={14} />
-													</a>
-												)}
-												{!st.githubRepoUrl && !st.githubPageUrl && (
-													<span className="text-slate-300 text-[11px]">-</span>
-												)}
-											</div>
+										<td className="py-3.5 px-4 font-mono text-slate-700">
+											{student.sprintCount || 0}x
 										</td>
-
-										<td className="px-4 py-3 text-right">
-											<div className="flex items-center justify-end gap-1">
+										<td className="py-3.5 px-4 text-right">
+											<div className="flex items-center justify-end gap-1.5">
 												<button
 													type="button"
-													onClick={() => setInspectedStudent(st)}
-													className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-													title="Lihat Detail Progres Mahasiswa"
+													onClick={() => setInspectedStudent(student)}
+													className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-md transition-colors cursor-pointer"
+													title="Lihat Detail Progres"
 												>
 													<Eye size={14} />
 												</button>
@@ -377,12 +397,14 @@ function AdminStudentsPage() {
 													type="button"
 													onClick={() => {
 														if (
-															confirm(`Hapus ${st.name} dari whitelist sistem?`)
+															confirm(
+																`Hapus akses mahasiswa ${student.name}? Data sprint & checklist akan ikut terhapus.`,
+															)
 														) {
-															deleteMutation.mutate(st.id);
+															deleteStudentMutation.mutate(student.id);
 														}
 													}}
-													className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+													className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
 													title="Hapus Mahasiswa"
 												>
 													<Trash2 size={14} />
@@ -390,178 +412,156 @@ function AdminStudentsPage() {
 											</div>
 										</td>
 									</tr>
-								))
-							) : (
-								<tr>
-									<td
-										colSpan={6}
-										className="px-5 py-12 text-center text-slate-400"
-									>
-										Tidak ada mahasiswa ditemukan untuk filter pencarian ini.
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</div>
+								))}
+							</tbody>
+						</table>
+					</div>
+				) : (
+					<EmptyState
+						icon={UserCheck}
+						title="Tidak ada mahasiswa ditemukan"
+						description="Belum ada data mahasiswa yang terdaftar sesuai dengan filter pencarian ini."
+						actionLabel="Tambah Mahasiswa Pertama"
+						onAction={() => setIsAddModalOpen(true)}
+					/>
+				)}
 
-				<Pagination
-					currentPage={currentPage}
-					totalPages={totalPages}
-					onPageChange={setCurrentPage}
-					pageSize={pageSize}
-					totalItems={totalStudentsCount}
-					onPageSizeChange={setPageSize}
-					pageSizeOptions={[10, 25, 50]}
-				/>
+				{/* Pagination Footer */}
+				{pagination && pagination.totalPages > 1 && (
+					<div className="p-4 border-t border-slate-100 bg-slate-50/50">
+						<Pagination
+							currentPage={currentPage}
+							totalPages={pagination.totalPages}
+							onPageChange={(page) => updateFilters({ page })}
+							pageSize={pageSize}
+							totalItems={pagination.total}
+							onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
+							pageSizeOptions={[10, 25, 50]}
+						/>
+					</div>
+				)}
 			</div>
 
-			{/* Add Single Student Modal */}
+			{/* 4. Add Student Modal */}
 			{isAddModalOpen && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-					<div className="bg-white rounded-xl max-w-md w-full p-6 shadow-lg border border-slate-200">
-						<div className="flex items-center justify-between pb-3 border-b border-slate-100">
-							<h3 className="text-base font-semibold text-slate-900">
+				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+						<div className="flex items-center justify-between border-b border-slate-100 pb-3">
+							<h3 className="text-sm font-semibold text-slate-900">
 								Tambah Mahasiswa ke Whitelist
 							</h3>
 							<button
 								type="button"
 								onClick={() => setIsAddModalOpen(false)}
-								className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+								className="text-slate-400 hover:text-slate-600 cursor-pointer"
 							>
-								<X size={18} />
+								<X size={16} />
 							</button>
 						</div>
 
 						<Formik
-							enableReinitialize={true}
 							initialValues={{
 								name: "",
 								email: "",
 								nim: "",
-								classId: classesList?.[0]?.id || "",
+								classId: selectedClassFilter || classesList?.[0]?.id || "",
 								githubRepoUrl: "",
 								githubPageUrl: "",
 							}}
 							validationSchema={SingleStudentSchema}
-							onSubmit={async (values) => {
-								await addStudentMutation.mutateAsync(values);
-							}}
+							enableReinitialize={true}
+							onSubmit={(values) => addStudentMutation.mutate(values)}
 						>
 							{({ isSubmitting }) => (
-								<Form className="space-y-4 mt-4">
+								<Form className="space-y-3.5 text-xs">
 									<div>
-										<label className="block text-xs font-medium text-slate-700 mb-1">
-											Nama Lengkap <span className="text-rose-500">*</span>
+										<label className="block font-medium text-slate-700 mb-1">
+											Nama Lengkap Mahasiswa *
 										</label>
 										<Field
 											type="text"
 											name="name"
-											placeholder="Contoh: Muhammad Zahi Ustadzi"
-											className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+											placeholder="e.g. Muhammad Zahi Ustadzi"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
 										/>
 										<ErrorMessage
 											name="name"
 											component="div"
-											className="text-rose-500 text-[11px] mt-0.5"
+											className="text-rose-600 text-[11px] mt-0.5"
 										/>
 									</div>
 
-									<div className="grid grid-cols-2 gap-3">
-										<div>
-											<label className="block text-xs font-medium text-slate-700 mb-1">
-												Email Google <span className="text-rose-500">*</span>
-											</label>
-											<Field
-												type="email"
-												name="email"
-												placeholder="email@students.unnes.ac.id"
-												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
-											/>
-											<ErrorMessage
-												name="email"
-												component="div"
-												className="text-rose-500 text-[11px] mt-0.5"
-											/>
-										</div>
-
-										<div>
-											<label className="block text-xs font-medium text-slate-700 mb-1">
-												NIM <span className="text-rose-500">*</span>
-											</label>
-											<Field
-												type="text"
-												name="nim"
-												placeholder="250414006"
-												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
-											/>
-											<ErrorMessage
-												name="nim"
-												component="div"
-												className="text-rose-500 text-[11px] mt-0.5"
-											/>
-										</div>
+									<div>
+										<label className="block font-medium text-slate-700 mb-1">
+											Email Google (OAuth) *
+										</label>
+										<Field
+											type="email"
+											name="email"
+											placeholder="e.g. zahi@student.univ.ac.id"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+										/>
+										<ErrorMessage
+											name="email"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
 									</div>
 
 									<div>
-										<label className="block text-xs font-medium text-slate-700 mb-1">
-											Kelas <span className="text-rose-500">*</span>
+										<label className="block font-medium text-slate-700 mb-1">
+											Nomor Induk Mahasiswa (NIM) *
+										</label>
+										<Field
+											type="text"
+											name="nim"
+											placeholder="e.g. 21051204001"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+										/>
+										<ErrorMessage
+											name="nim"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
+									</div>
+
+									<div>
+										<label className="block font-medium text-slate-700 mb-1">
+											Kelas Perkuliahan *
 										</label>
 										<Field
 											as="select"
 											name="classId"
-											className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
 										>
-											{classesList?.map((cls) => (
-												<option key={cls.id} value={cls.id}>
-													{cls.name}
+											<option value="">-- Pilih Kelas --</option>
+											{classesList?.map((c) => (
+												<option key={c.id} value={c.id}>
+													{c.name} ({c.academicTerm})
 												</option>
 											))}
 										</Field>
+										<ErrorMessage
+											name="classId"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
 									</div>
 
-									<div className="grid grid-cols-2 gap-3">
-										<div>
-											<label className="block text-xs font-medium text-slate-700 mb-1">
-												URL GitHub Repo (Opsional)
-											</label>
-											<Field
-												type="url"
-												name="githubRepoUrl"
-												placeholder="https://github.com/..."
-												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
-											/>
-										</div>
-
-										<div>
-											<label className="block text-xs font-medium text-slate-700 mb-1">
-												URL GitHub Pages (Opsional)
-											</label>
-											<Field
-												type="url"
-												name="githubPageUrl"
-												placeholder="https://...github.io"
-												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
-											/>
-										</div>
-									</div>
-
-									<div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+									<div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
 										<button
 											type="button"
 											onClick={() => setIsAddModalOpen(false)}
-											className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+											className="px-3.5 py-1.5 text-slate-600 hover:text-slate-800 cursor-pointer"
 										>
 											Batal
 										</button>
 										<button
 											type="submit"
 											disabled={isSubmitting || addStudentMutation.isPending}
-											className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer disabled:opacity-50"
+											className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
 										>
-											{isSubmitting || addStudentMutation.isPending
-												? "Menyimpan..."
-												: "Simpan Mahasiswa"}
+											Simpan Mahasiswa
 										</button>
 									</div>
 								</Form>
@@ -571,101 +571,121 @@ function AdminStudentsPage() {
 				</div>
 			)}
 
-			{/* Batch Import CSV Modal */}
+			{/* 5. Batch Import CSV Modal */}
 			{isBatchModalOpen && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-					<div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-lg border border-slate-200">
-						<div className="flex items-center justify-between pb-3 border-b border-slate-100">
-							<h3 className="text-base font-semibold text-slate-900">
-								Batch Import Mahasiswa (CSV / Teks)
+				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg p-6 space-y-4">
+						<div className="flex items-center justify-between border-b border-slate-100 pb-3">
+							<h3 className="text-sm font-semibold text-slate-900">
+								Impor Batch Data Mahasiswa
 							</h3>
 							<button
 								type="button"
-								onClick={() => setIsBatchModalOpen(false)}
-								className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+								onClick={() => {
+									setIsBatchModalOpen(false);
+									setBatchResult(null);
+								}}
+								className="text-slate-400 hover:text-slate-600 cursor-pointer"
 							>
-								<X size={18} />
+								<X size={16} />
 							</button>
 						</div>
 
-						<div className="space-y-4 mt-4 text-xs">
-							<div>
-								<label className="block text-xs font-medium text-slate-700 mb-1">
-									Pilih Kelas Tujuan
-								</label>
-								<select
-									value={batchClassId}
-									onChange={(e) => setBatchClassId(e.target.value)}
-									className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
-								>
-									<option value="">-- Pilih Kelas --</option>
-									{classesList?.map((cls) => (
-										<option key={cls.id} value={cls.id}>
-											{cls.name}
-										</option>
-									))}
-								</select>
-							</div>
-
-							<div>
-								<label className="block text-xs font-medium text-slate-700 mb-1">
-									Tempel Data Mahasiswa (1 baris per mahasiswa)
-								</label>
-								<p className="text-[11px] text-slate-500 mb-1.5">
-									Format: <code>Nama, Email, NIM, [RepoURL], [PagesURL]</code>
-								</p>
-								<textarea
-									rows={6}
-									value={batchText}
-									onChange={(e) => setBatchText(e.target.value)}
-									placeholder={`Andi Pratama, andi@students.unnes.ac.id, 250414001\nBudi Santoso, budi@students.unnes.ac.id, 250414002`}
-									className="w-full p-2.5 rounded-lg border border-slate-200 font-mono text-[11px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-								/>
-							</div>
-
-							{batchResult && (
-								<div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs">
-									<p className="font-semibold">
-										✅ Selesai: {batchResult.added} mahasiswa ditambahkan,{" "}
-										{batchResult.skipped} dilewati.
+						{batchResult ? (
+							<div className="space-y-3 text-xs">
+								<div className="p-3 bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-200">
+									<p className="font-semibold">Impor Batch Selesai!</p>
+									<p>
+										Berhasil ditambahkan: {batchResult.added} mahasiswa.
+										Dilewati: {batchResult.skipped}.
 									</p>
-									{batchResult.errors.length > 0 && (
-										<ul className="mt-1 list-disc list-inside text-slate-600">
-											{batchResult.errors.map((e, idx) => (
-												<li key={idx}>{e}</li>
-											))}
-										</ul>
-									)}
 								</div>
-							)}
-
-							<div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-								<button
-									type="button"
-									onClick={() => setIsBatchModalOpen(false)}
-									className="px-3.5 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-								>
-									Tutup
-								</button>
-								<button
-									type="button"
-									onClick={handleProcessBatch}
-									disabled={batchAddMutation.isPending || !batchText.trim()}
-									className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer disabled:opacity-50"
-								>
-									{batchAddMutation.isPending ? "Mengimpor..." : "Mulai Import"}
-								</button>
+								{batchResult.errors.length > 0 && (
+									<div className="max-h-32 overflow-y-auto space-y-1 text-slate-500 font-mono text-[11px]">
+										{batchResult.errors.map((e, idx) => (
+											<p key={idx}>• {e}</p>
+										))}
+									</div>
+								)}
+								<div className="flex justify-end pt-2">
+									<button
+										type="button"
+										onClick={() => {
+											setIsBatchModalOpen(false);
+											setBatchResult(null);
+										}}
+										className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
+									>
+										Tutup
+									</button>
+								</div>
 							</div>
-						</div>
+						) : (
+							<div className="space-y-3.5 text-xs">
+								<div>
+									<label className="block font-medium text-slate-700 mb-1">
+										Pilih Kelas Target *
+									</label>
+									<select
+										value={batchClassId}
+										onChange={(e) => setBatchClassId(e.target.value)}
+										className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+									>
+										<option value="">-- Pilih Kelas --</option>
+										{classesList?.map((c) => (
+											<option key={c.id} value={c.id}>
+												{c.name} ({c.academicTerm})
+											</option>
+										))}
+									</select>
+								</div>
+
+								<div>
+									<label className="block font-medium text-slate-700 mb-1">
+										Paste Data (Format: Nama, Email, NIM per baris)
+									</label>
+									<textarea
+										rows={6}
+										value={batchText}
+										onChange={(e) => setBatchText(e.target.value)}
+										placeholder="Budi Santoso, budi@student.ac.id, 21051204010&#10;Siti Aminah, siti@student.ac.id, 21051204011"
+										className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-[11px]"
+									/>
+								</div>
+
+								<div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+									<button
+										type="button"
+										onClick={() => setIsBatchModalOpen(false)}
+										className="px-3.5 py-1.5 text-slate-600 hover:text-slate-800 cursor-pointer"
+									>
+										Batal
+									</button>
+									<button
+										type="button"
+										onClick={handleBatchParseAndSubmit}
+										disabled={batchAddMutation.isPending}
+										className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+									>
+										{batchAddMutation.isPending
+											? "Memproses..."
+											: "Proses Impor Batch"}
+									</button>
+								</div>
+							</div>
+						)}
 					</div>
 				</div>
 			)}
 
-			<StudentDetailModal
-				isOpen={!!inspectedStudent}
-				onClose={() => setInspectedStudent(null)}
-				student={inspectedStudent}
-			/>
+			{/* 6. Student Detail Inspector Modal */}
+			{inspectedStudent && (
+				<StudentDetailModal
+					isOpen={!!inspectedStudent}
+					onClose={() => setInspectedStudent(null)}
+					student={inspectedStudent}
+				/>
+			)}
 		</div>
 	);
 }

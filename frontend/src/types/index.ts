@@ -6,6 +6,8 @@ export type ChecklistStatus =
 	| "PRACTICING"
 	| "CAN_DO_INDEPENDENTLY";
 
+export type ChecklistProgressStatus = ChecklistStatus;
+
 export type EvidenceType =
 	| "GITHUB"
 	| "GITHUB_PAGES"
@@ -13,6 +15,22 @@ export type EvidenceType =
 	| "FIGMA"
 	| "LIVE_DEMO"
 	| "OTHER";
+
+export type ReviewStatus = "ALL" | "PENDING" | "REVIEWED";
+
+export interface PaginationMeta {
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+	success: boolean;
+	data: T[];
+	pagination: PaginationMeta;
+	message?: string;
+}
 
 export interface User {
 	id: string;
@@ -27,6 +45,9 @@ export interface User {
 	githubPageUrl?: string | null;
 	avatarUrl?: string | null;
 	isActive?: boolean;
+	createdAt?: string;
+	sprintCount?: number;
+	checkedCount?: number;
 }
 
 export interface ClassGroup {
@@ -84,6 +105,9 @@ export interface LearningSprint {
 	confusingParts?: string | null;
 	evidenceUrl?: string | null;
 	evidenceType: EvidenceType;
+	reviewStatus?: "PENDING" | "REVIEWED";
+	instructorFeedback?: string | null;
+	reviewedAt?: string | null;
 	createdAt: string;
 	isHabitQualified: boolean;
 	user?: {
@@ -101,6 +125,19 @@ export interface LearningSprint {
 	} | null;
 	feedbacks?: PeerFeedback[];
 	feedbackCount?: number;
+}
+
+export interface ReviewQueueItem extends LearningSprint {
+	student: {
+		id: string;
+		name: string;
+		email: string;
+		nim?: string | null;
+		avatarUrl?: string | null;
+		className?: string | null;
+		githubRepoUrl?: string | null;
+		githubPageUrl?: string | null;
+	};
 }
 
 export interface StudentDashboardData {
@@ -167,5 +204,4 @@ export interface AdminDashboardData {
 	}>;
 }
 
-// Runtime marker
 export const TYPES_READY = true;

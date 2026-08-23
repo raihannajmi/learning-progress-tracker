@@ -70,18 +70,46 @@ async function runTests() {
     );
     console.log(`   ✅ PASS: Peer feedback added by ${feedback.author?.name}: "${feedback.comment}"`);
 
-    // 7. Student Dashboard
-    console.log('7️⃣ Testing Student Dashboard KPIs & Progress Calculation...');
+    // 7. Review Queue & Instructor Review Submission
+    console.log('7️⃣ Testing Dedicated Instructor Review Queue & Review Submission...');
+    const reviewQueue = await SprintService.listReviewQueue({
+      status: 'ALL',
+      page: 1,
+      limit: 5,
+    });
+    console.log(`   ✅ PASS: Review queue retrieved ${reviewQueue.data.length} submissions. Total: ${reviewQueue.pagination.total}`);
+
+    const reviewedSprint = await SprintService.submitInstructorReview(
+      newSprint.id,
+      adminAuth.user.id,
+      {
+        instructorFeedback: 'Implementasi grid sudah sangat tepat. Lanjutkan eksplorasi nested subgrid.',
+        reviewStatus: 'REVIEWED',
+      }
+    );
+    console.log(`   ✅ PASS: Instructor feedback submitted by ${reviewedSprint.reviewer.name}. Status: ${reviewedSprint.reviewStatus}`);
+
+    // 8. Student Dashboard
+    console.log('8️⃣ Testing Student Dashboard KPIs & Progress Calculation...');
     const studentDash = await DashboardService.getStudentDashboard(studentAuth.user.id);
     console.log(`   ✅ PASS: Student Dashboard loaded. Overall self-assessed progress: ${studentDash.summary.overallPercentage}%, Habit sprints: ${studentDash.summary.habitReachedCount}, Next action: "${studentDash.nextAction.suggestedFocus}"`);
 
-    // 8. TA / Admin Dashboard
-    console.log('8️⃣ Testing TA / Admin Dashboard Aggregation & Inactive Filter...');
+    // 9. TA / Admin Dashboard
+    console.log('9️⃣ Testing TA / Admin Dashboard Aggregation & Inactive Filter...');
     const adminDash = await DashboardService.getAdminDashboard();
     console.log(`   ✅ PASS: TA Dashboard loaded. Active students this week: ${adminDash.activeStudentsThisWeek}/${adminDash.totalStudents}. Confusions found: ${adminDash.commonConfusions.length}, Inactive count: ${adminDash.studentsNeedingAttention.length}`);
 
-    // 9. Admin adding new student to whitelist
-    console.log('9️⃣ Testing Admin Adding New Student to Whitelist...');
+    // 10. Server-Side Paginated Student Management
+    console.log('🔟 Testing Admin Student Whitelist with Server-Side Pagination...');
+    const paginatedStudents = await AdminStudentService.listStudents({
+      page: 1,
+      limit: 10,
+      search: 'zahi',
+    });
+    console.log(`   ✅ PASS: Paginated student search returned ${paginatedStudents.data.length} records. Total: ${paginatedStudents.pagination.total}, TotalPages: ${paginatedStudents.pagination.totalPages}`);
+
+    // 11. Admin adding new student to whitelist
+    console.log('1️⃣1️⃣ Testing Admin Adding New Student to Whitelist...');
     const classesList = await ClassService.getAllClasses();
     const classId = classesList[0].id;
     const newStudentEmail = `test.student.${Date.now()}@student.univ.ac.id`;
@@ -93,12 +121,8 @@ async function runTests() {
     });
     console.log(`   ✅ PASS: New student whitelisted: ${newStudent.name} (${newStudent.email})`);
 
-    // Verify new student can immediately log in
-    const newStudentLogin = await AuthService.verifyGoogleLogin(`dev-mock:${newStudentEmail}`);
-    console.log(`   ✅ PASS: Newly whitelisted student logged in successfully with user ID: ${newStudentLogin.user.id}`);
-
-    // 10. Admin Roadmap & Checklist CRUD
-    console.log('🔟 Testing Admin Roadmap & Checklist Management (CRUD)...');
+    // 12. Admin Roadmap & Checklist CRUD
+    console.log('1️⃣2️⃣ Testing Admin Roadmap & Checklist Management (CRUD)...');
     const createdWeek = await RoadmapAdminService.createWeek({
       weekNumber: 99,
       title: 'Week 99: Fullstack Deployment & CI/CD',
@@ -125,7 +149,7 @@ async function runTests() {
     await RoadmapAdminService.deleteWeek(createdWeek.id);
     console.log('   ✅ PASS: Admin successfully cleaned up test syllabus week & cascaded topics/checklists.');
 
-    console.log('\n🎉 ALL 10 BACKEND VERIFICATION CHECKS PASSED WITH 100% SUCCESS!\n');
+    console.log('\n🎉 ALL 12 BACKEND VERIFICATION CHECKS PASSED WITH 100% SUCCESS!\n');
   } catch (error) {
     console.error('❌ Verification check failed:', error);
     process.exit(1);

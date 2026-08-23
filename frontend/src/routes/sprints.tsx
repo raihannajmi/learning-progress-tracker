@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useNavigate,
+	useSearch,
+} from "@tanstack/react-router";
 import {
 	CheckCircle2,
 	Flame,
@@ -17,12 +21,30 @@ import { StatCard } from "../components/common/StatCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import { useTimerStore } from "../stores/timerStore.js";
-import type { LearningSprint, RoadmapWeek } from "../types/index.js";
+import type {
+	LearningSprint,
+	PaginatedResponse,
+	RoadmapWeek,
+} from "../types/index.js";
 
-export const Route = createFileRoute("/sprints")({ component: SprintsPage });
+interface SprintSearchParams {
+	page?: number;
+	limit?: number;
+}
+
+export const Route = createFileRoute("/sprints")({
+	validateSearch: (search: Record<string, unknown>): SprintSearchParams => {
+		return {
+			page: Number(search.page) || 1,
+			limit: Number(search.limit) || 10,
+		};
+	},
+	component: SprintsPage,
+});
 
 function SprintsPage() {
 	const navigate = useNavigate();
+	const searchParams = useSearch({ from: "/sprints" });
 	const { user, isAuthenticated } = useAuthStore();
 
 	const {
@@ -39,12 +61,12 @@ function SprintsPage() {
 		openReflectionModal,
 	} = useTimerStore();
 
+	const currentPage = searchParams.page || 1;
+	const pageSize = searchParams.limit || 10;
+
 	// Local state for setting up next session
 	const [setupTopicId, setSetupTopicId] = useState<string>("");
 	const [setupDurationMinutes, setSetupDurationMinutes] = useState<number>(25);
-
-	const [currentPage, setCurrentPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -53,6 +75,15 @@ function SprintsPage() {
 			navigate({ to: "/admin" });
 		}
 	}, [isAuthenticated, user, navigate]);
+
+	const updateFilters = (updates: Partial<SprintSearchParams>) => {
+		navigate({
+			search: (prev) => ({
+				...prev,
+				...updates,
+			}),
+		});
+	};
 
 	// Tick timer in background while page is mounted
 	useEffect(() => {
@@ -84,15 +115,28 @@ function SprintsPage() {
 			})),
 		) || [];
 
-	// Fetch Sprints for this user
-	const { data: sprints, isLoading } = useQuery<LearningSprint[]>({
-		queryKey: ["sprints", { userId: user?.id }],
+	// Fetch Sprints for this user (Server-Side Paginated)
+	const { data: sprintResponse, isLoading } = useQuery<
+		PaginatedResponse<LearningSprint>
+	>({
+		queryKey: [
+			"sprints",
+			{ userId: user?.id, page: currentPage, limit: pageSize },
+		],
 		queryFn: async () => {
-			const res: any = await api.get(`/sprints?userId=${user?.id}`);
-			return res.data;
+			const params = new URLSearchParams();
+			params.set("userId", user?.id || "");
+			params.set("page", String(currentPage));
+			params.set("limit", String(pageSize));
+
+			const res: any = await api.get(`/sprints?${params.toString()}`);
+			return res;
 		},
 		enabled: !!user?.id,
 	});
+
+	const sprints = sprintResponse?.data || [];
+	const pagination = sprintResponse?.pagination;
 
 	const totalMinutes =
 		sprints?.reduce((acc, s) => acc + s.durationMinutes, 0) || 0;
@@ -128,7 +172,7 @@ function SprintsPage() {
 		Math.round((elapsedSeconds / targetSeconds) * 100),
 	);
 
-	if (isLoading) {
+	if (isLoading && !sprintResponse) {
 		return (
 			<div className="space-y-6">
 				<div className="h-48 bg-white border border-slate-200 rounded-xl animate-pulse" />
@@ -360,7 +404,7 @@ function SprintsPage() {
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 				<StatCard
 					label="Total Sesi Sprint"
-					value={sprints?.length || 0}
+					value={pagination?.total || sprints?.length || 0}
 					subtext="Sesi refleksi terdokumentasi"
 					icon={Timer}
 					iconColor="text-slate-500"
@@ -408,21 +452,21 @@ function SprintsPage() {
 			<div className="space-y-4">
 				{sprints && sprints.length > 0 ? (
 					<>
-						{sprints
-							.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-							.map((sprint) => (
-								<PeerFeedbackCard key={sprint.id} sprint={sprint} />
-							))}
+						{sprints.map((sprint) => (
+							<PeerFeedbackCard key={sprint.id} sprint={sprint} />
+						))}
 
-						<Pagination
-							currentPage={currentPage}
-							totalPages={Math.ceil(sprints.length / pageSize) || 1}
-							onPageChange={setCurrentPage}
-							pageSize={pageSize}
-							totalItems={sprints.length}
-							onPageSizeChange={setPageSize}
-							pageSizeOptions={[5, 10, 20]}
-						/>
+						{pagination && pagination.totalPages > 1 && (
+							<Pagination
+								currentPage={currentPage}
+								totalPages={pagination.totalPages}
+								onPageChange={(page) => updateFilters({ page })}
+								pageSize={pageSize}
+								totalItems={pagination.total}
+								onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
+								pageSizeOptions={[5, 10, 20]}
+							/>
+						)}
 					</>
 				) : (
 					<EmptyState

@@ -1,5 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Flame, MessageSquare, Send } from "lucide-react";
+import {
+	CheckCircle2,
+	ExternalLink,
+	Flame,
+	MessageSquare,
+	Send,
+	ShieldCheck,
+} from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { api } from "../../lib/api.js";
@@ -23,6 +30,7 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["sprints"] });
+			queryClient.invalidateQueries({ queryKey: ["classSprints"] });
 			setCommentText("");
 			setIsReplying(false);
 		},
@@ -35,6 +43,11 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 	};
 
 	const isHabit = sprint.durationMinutes >= 25;
+	const student = sprint.user || {
+		name: "Mahasiswa",
+		avatarUrl: null,
+		className: null,
+	};
 
 	return (
 		<div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
@@ -42,24 +55,24 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 			<div className="flex items-center justify-between gap-3">
 				<div className="flex items-center gap-3 min-w-0">
 					<div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-xs text-slate-700 shrink-0">
-						{sprint.user.avatarUrl ? (
+						{student.avatarUrl ? (
 							<img
-								src={sprint.user.avatarUrl}
-								alt={sprint.user.name}
+								src={student.avatarUrl}
+								alt={student.name}
 								className="w-full h-full object-cover rounded-lg"
 							/>
 						) : (
-							sprint.user.name.charAt(0).toUpperCase()
+							student.name.charAt(0).toUpperCase()
 						)}
 					</div>
 					<div className="min-w-0">
 						<div className="flex items-center gap-2 flex-wrap">
 							<span className="text-xs font-semibold text-slate-900 truncate">
-								{sprint.user.name}
+								{student.name}
 							</span>
-							{sprint.user.className && (
+							{student.className && (
 								<span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-sm">
-									{sprint.user.className}
+									{student.className}
 								</span>
 							)}
 						</div>
@@ -78,7 +91,7 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 					{isHabit && (
 						<span className="inline-flex items-center gap-1 text-[11px] font-medium font-mono rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5">
 							<Flame size={12} className="text-amber-500" />
-							<span>{sprint.durationMinutes}m</span>
+							<span>{sprint.durationMinutes}m Fokus</span>
 						</span>
 					)}
 				</div>
@@ -128,7 +141,41 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 				</div>
 			)}
 
-			{/* Feedback Section */}
+			{/* Authoritative Instructor / TA Feedback (Distinct Visual Identity) */}
+			{sprint.instructorFeedback && (
+				<div className="p-3.5 bg-blue-50/70 rounded-lg border border-blue-200 space-y-1.5 text-xs">
+					<div className="flex items-center justify-between gap-2">
+						<div className="flex items-center gap-1.5">
+							<ShieldCheck size={14} className="text-blue-700" />
+							<span className="font-bold uppercase tracking-wider text-[10px] text-blue-900 font-mono">
+								Feedback Resmi Dosen / Asisten Dosen
+							</span>
+						</div>
+						<span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-1.5 py-0.2 rounded-xs">
+							<CheckCircle2 size={10} />
+							<span>TERVERIFIKASI</span>
+						</span>
+					</div>
+
+					<p className="text-slate-800 leading-relaxed pl-5 font-normal">
+						"{sprint.instructorFeedback}"
+					</p>
+
+					{sprint.reviewedAt && (
+						<p className="text-[10px] text-slate-400 pl-5 font-mono">
+							Direview pada{" "}
+							{new Date(sprint.reviewedAt).toLocaleDateString("id-ID", {
+								day: "numeric",
+								month: "short",
+								hour: "2-digit",
+								minute: "2-digit",
+							})}
+						</p>
+					)}
+				</div>
+			)}
+
+			{/* Peer Feedback Section */}
 			<div className="pt-3 border-t border-slate-100 space-y-3">
 				<div className="flex items-center justify-between">
 					<button

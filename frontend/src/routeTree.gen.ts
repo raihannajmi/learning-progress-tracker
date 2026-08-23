@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminReviewRouteImport } from './routes/admin-review'
 import { Route as AdminRoadmapRouteImport } from './routes/admin-roadmap'
 import { Route as AdminStudentsRouteImport } from './routes/admin-students'
 import { Route as ClassRouteImport } from './routes/class'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReviewRoute = AdminReviewRouteImport.update({
+  id: '/admin-review',
+  path: '/admin-review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoadmapRoute = AdminRoadmapRouteImport.update({
@@ -62,6 +68,7 @@ const SprintsRoute = SprintsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
   '/class': typeof ClassRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
   '/class': typeof ClassRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
   '/class': typeof ClassRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
     | '/class'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
     | '/class'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
     | '/class'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdminReviewRoute: typeof AdminReviewRoute
   AdminRoadmapRoute: typeof AdminRoadmapRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
   ClassRoute: typeof ClassRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-review': {
+      id: '/admin-review'
+      path: '/admin-review'
+      fullPath: '/admin-review'
+      preLoaderRoute: typeof AdminReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-roadmap': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdminReviewRoute: AdminReviewRoute,
   AdminRoadmapRoute: AdminRoadmapRoute,
   AdminStudentsRoute: AdminStudentsRoute,
   ClassRoute: ClassRoute,

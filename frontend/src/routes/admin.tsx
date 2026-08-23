@@ -309,14 +309,23 @@ function AdminDashboardPage() {
 			{/* 4. Recent Evidence Submissions Stream */}
 			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
 				<div className="p-6 space-y-4">
-					<div className="pb-3 border-b border-slate-100">
-						<h3 className="text-sm font-semibold text-slate-900">
-							Bukti Pembelajaran Terbaru (Evidence Stream)
-						</h3>
-						<p className="text-xs text-slate-500 mt-0.5">
-							Review cepat submission link GitHub, Loom, atau Live Demo dari
-							mahasiswa
-						</p>
+					<div className="flex items-center justify-between pb-3 border-b border-slate-100">
+						<div>
+							<h3 className="text-sm font-semibold text-slate-900">
+								Bukti Pembelajaran Terbaru (Evidence Stream)
+							</h3>
+							<p className="text-xs text-slate-500 mt-0.5">
+								Review cepat submission link GitHub, Loom, atau Live Demo dari
+								mahasiswa
+							</p>
+						</div>
+
+						<Link
+							to="/admin-review"
+							className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+						>
+							Buka Antrean Review Lengkap →
+						</Link>
 					</div>
 
 					{totalEvidence === 0 ? (
@@ -344,15 +353,24 @@ function AdminDashboardPage() {
 										</p>
 									</div>
 
-									<a
-										href={ev.evidenceUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="inline-flex items-center gap-1 text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium shrink-0 transition-colors"
-									>
-										<span>{ev.evidenceType}</span>
-										<ExternalLink size={11} />
-									</a>
+									<div className="flex items-center gap-2 shrink-0">
+										<a
+											href={ev.evidenceUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+										>
+											<span>{ev.evidenceType}</span>
+											<ExternalLink size={11} />
+										</a>
+
+										<Link
+											to="/admin-review"
+											className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-xs transition-colors"
+										>
+											Review
+										</Link>
+									</div>
 								</div>
 							))}
 						</div>

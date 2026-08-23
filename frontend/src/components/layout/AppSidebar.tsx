@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	ChevronLeft,
 	ChevronRight,
+	ClipboardCheck,
 	Code2,
 	Compass,
 	Layers,
@@ -64,8 +65,13 @@ export const AppSidebar: React.FC<Props> = ({
 	const adminLinks = [
 		{
 			to: "/admin",
-			label: "Monitoring Dosen/TA",
+			label: "Monitoring Kelas",
 			icon: ShieldCheck,
+		},
+		{
+			to: "/admin-review",
+			label: "Review & Asistensi",
+			icon: ClipboardCheck,
 		},
 		{
 			to: "/admin-students",

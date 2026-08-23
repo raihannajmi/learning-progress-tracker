@@ -170,6 +170,20 @@ apiRouter.post(
   SprintController.addFeedback
 );
 
+// 5.5. Admin / Instructor Review Queue & Feedback
+apiRouter.get(
+  '/admin/reviews',
+  authenticate,
+  requireRole('ADMIN'),
+  SprintController.listReviews
+);
+apiRouter.post(
+  '/admin/reviews/:sprintId',
+  authenticate,
+  requireRole('ADMIN'),
+  SprintController.submitReview
+);
+
 // 6. Dashboards
 apiRouter.get('/dashboard/student', authenticate, DashboardController.getStudentDashboard);
 apiRouter.get(

@@ -1,8 +1,16 @@
 import { Response } from 'express';
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
+  pagination?: PaginationMeta;
   message?: string;
   error?: {
     message: string;
@@ -15,11 +23,13 @@ export const sendSuccess = <T>(
   res: Response,
   data: T,
   message?: string,
-  statusCode = 200
+  statusCode = 200,
+  pagination?: PaginationMeta
 ): Response => {
   const response: ApiResponse<T> = {
     success: true,
     data,
+    ...(pagination && { pagination }),
     ...(message && { message }),
   };
   return res.status(statusCode).json(response);

@@ -5,9 +5,21 @@ import { sendSuccess } from '../utils/response.js';
 export class AdminStudentController {
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { classId, search } = req.query as { classId?: string; search?: string };
-      const data = await AdminStudentService.listStudents({ classId, search });
-      sendSuccess(res, data, 'Daftar mahasiswa terdaftar');
+      const { classId, search, status, page, limit } = req.query as {
+        classId?: string;
+        search?: string;
+        status?: 'all' | 'active' | 'inactive';
+        page?: string;
+        limit?: string;
+      };
+      const result = await AdminStudentService.listStudents({
+        classId,
+        search,
+        status,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+      sendSuccess(res, result.data, 'Daftar mahasiswa terdaftar', 200, result.pagination);
     } catch (error) {
       next(error);
     }
@@ -46,7 +58,7 @@ export class AdminStudentController {
     try {
       const id = req.params.id as string;
       const data = await AdminStudentService.deleteStudent(id);
-      sendSuccess(res, data, 'Mahasiswa berhasil dihapus dari sistem');
+      sendSuccess(res, data, 'Mahasiswa berhasil dihapus');
     } catch (error) {
       next(error);
     }
