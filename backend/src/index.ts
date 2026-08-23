@@ -11,18 +11,30 @@ dotenv.config();
 
 const app: express.Express = express();
 const PORT = process.env.PORT || 5001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || process.env.CLIENT_URL || 'http://localhost:3000';
+
+const allowedOrigins = [
+  ...CORS_ORIGIN.split(',').map((o) => o.trim()),
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:8888',
+].filter(Boolean);
 
 // Global Security & Logging Middlewares
 app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl) or matching dev ports
-      if (!origin || origin === CORS_ORIGIN || origin.startsWith('http://localhost:')) {
+      // Allow requests with no origin (like curl) or matching allowed origins / localhost
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.startsWith('http://localhost:') ||
+        origin.endsWith('.netlify.app')
+      ) {
         callback(null, true);
       } else {
-        callback(null, true); // Permissive in dev
+        callback(null, true); // Fallback permissive for web client
       }
     },
     credentials: true,

@@ -8,6 +8,9 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
+# Allow build scripts (esbuild, etc.) — required for pnpm v10+ in Docker
+RUN pnpm config set ignore-scripts false
+
 # Install dependencies
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -31,6 +34,9 @@ ENV NODE_ENV=production
 ENV PORT=5001
 
 RUN npm install -g pnpm
+
+# Allow build scripts in runner stage too
+RUN pnpm config set ignore-scripts false
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile
