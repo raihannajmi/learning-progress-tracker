@@ -13,13 +13,15 @@ export const createStudentSchema = z.object({
 
 export const batchCreateStudentSchema = z.object({
   body: z.object({
-    classId: z.string().uuid('Class ID tidak valid'),
+    classId: z.string().uuid('Class ID tidak valid').optional().or(z.literal('')),
     students: z
       .array(
         z.object({
           name: z.string().min(2, 'Nama minimal 2 karakter'),
           email: z.string().email('Format email tidak valid'),
           nim: z.string().min(3, 'NIM minimal 3 karakter'),
+          classId: z.string().optional(),
+          className: z.string().optional(),
           githubRepoUrl: z.string().optional().or(z.literal('')),
           githubPageUrl: z.string().optional().or(z.literal('')),
         })

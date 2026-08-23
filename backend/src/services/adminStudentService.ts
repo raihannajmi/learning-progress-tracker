@@ -137,13 +137,17 @@ export class AdminStudentService {
 
     const dbClasses = await db.select().from(classes);
     const classMap = new Map<string, string>();
-    dbClasses.forEach((c) => classMap.set(c.name, c.id));
+    dbClasses.forEach((c) => {
+      classMap.set(c.name.trim().toLowerCase(), c.id);
+      classMap.set(c.id, c.id);
+    });
 
     for (const student of studentList) {
       try {
+        const normClassName = student.className ? student.className.trim().toLowerCase() : '';
         const targetClassId =
+          (normClassName ? classMap.get(normClassName) : undefined) ||
           student.classId ||
-          (student.className ? classMap.get(student.className) : undefined) ||
           classId ||
           dbClasses[0]?.id;
 
@@ -154,8 +158,16 @@ export class AdminStudentService {
           .limit(1);
 
         if (existing) {
-          results.skipped++;
-          results.errors.push(`Email ${student.email} sudah ada, dilewati.`);
+          // If already exists, update their classId to the correct targetClassId if different!
+          if (existing.classId !== targetClassId) {
+            await db
+              .update(users)
+              .set({ classId: targetClassId })
+              .where(eq(users.id, existing.id));
+            results.added++;
+          } else {
+            results.skipped++;
+          }
           continue;
         }
 

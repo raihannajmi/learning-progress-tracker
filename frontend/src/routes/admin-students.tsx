@@ -195,6 +195,8 @@ function AdminStudentsPage() {
 		},
 		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["adminStudents"] });
+			queryClient.invalidateQueries({ queryKey: ["classes"] });
+			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
 			setBatchResult(data);
 		},
 	});
