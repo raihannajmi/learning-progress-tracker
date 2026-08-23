@@ -49,4 +49,5 @@ COPY --from=builder /app/drizzle ./drizzle
 
 EXPOSE 5001
 
-CMD ["node", "dist/index.js"]
+# Auto-migrate then start — ensures schema is up to date on every deploy
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
