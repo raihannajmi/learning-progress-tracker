@@ -483,7 +483,6 @@ export class SprintService {
       .update(peerFeedback)
       .set({
         comment,
-        updatedAt: new Date(),
       })
       .where(eq(peerFeedback.id, feedbackId))
       .returning();
