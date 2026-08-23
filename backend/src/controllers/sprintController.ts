@@ -5,9 +5,10 @@ import { sendSuccess } from '../utils/response.js';
 export class SprintController {
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { classId, userId, page, limit } = req.query as {
+      const { classId, userId, needsFeedback, page, limit } = req.query as {
         classId?: string;
         userId?: string;
+        needsFeedback?: string;
         page?: string;
         limit?: string;
       };
@@ -15,6 +16,7 @@ export class SprintController {
       const result = await SprintService.listSprints({
         classId,
         userId,
+        needsFeedback: needsFeedback === 'true' ? true : undefined,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
       });

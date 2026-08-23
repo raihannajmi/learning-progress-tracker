@@ -12,6 +12,7 @@ export class SprintService {
   static async listSprints(filters?: {
     classId?: string;
     userId?: string;
+    needsFeedback?: boolean;
     page?: number;
     limit?: number;
   }) {
@@ -26,6 +27,9 @@ export class SprintService {
     }
     if (filters?.classId) {
       conditions.push(eq(users.classId, filters.classId));
+    }
+    if (filters?.needsFeedback !== undefined) {
+      conditions.push(eq(learningSprints.needsFeedback, filters.needsFeedback));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -51,6 +55,7 @@ export class SprintService {
         evidenceUrl: learningSprints.evidenceUrl,
         evidenceType: learningSprints.evidenceType,
         reviewStatus: learningSprints.reviewStatus,
+        needsFeedback: learningSprints.needsFeedback,
         instructorFeedback: learningSprints.instructorFeedback,
         reviewedAt: learningSprints.reviewedAt,
         createdAt: learningSprints.createdAt,
@@ -385,6 +390,7 @@ export class SprintService {
       confusingParts?: string | null;
       evidenceUrl?: string | null;
       evidenceType?: 'GITHUB' | 'GITHUB_PAGES' | 'LOOM' | 'FIGMA' | 'LIVE_DEMO' | 'OTHER';
+      needsFeedback?: boolean;
     }
   ) {
     const [newSprint] = await db
@@ -399,6 +405,7 @@ export class SprintService {
         evidenceUrl: data.evidenceUrl || null,
         evidenceType: data.evidenceType || 'OTHER',
         reviewStatus: 'PENDING',
+        needsFeedback: Boolean(data.needsFeedback),
       })
       .returning();
 

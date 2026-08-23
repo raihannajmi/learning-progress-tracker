@@ -96,7 +96,6 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 		isReflectionModalOpen,
 		selectedTopicId,
 		reflectionDurationMinutes,
-		openReflectionModal,
 		closeReflectionModal,
 	} = useTimerStore();
 
@@ -134,10 +133,6 @@ function LayoutContainer({ children }: { children: React.ReactNode }) {
 				<AppHeader
 					isCollapsed={isCollapsed}
 					setIsMobileOpen={setIsMobileOpen}
-					onOpenSprintModal={() => {
-						openReflectionModal(null, 25);
-						setIsManualModalOpen(true);
-					}}
 				/>
 				<main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
 					{children}

@@ -1,18 +1,14 @@
 import { useRouterState } from "@tanstack/react-router";
-import { Menu, Timer } from "lucide-react";
+import { Menu } from "lucide-react";
 import type React from "react";
 import { useAuthStore } from "../../stores/authStore.js";
 
 interface Props {
 	isCollapsed?: boolean;
 	setIsMobileOpen: (open: boolean) => void;
-	onOpenSprintModal?: () => void;
 }
 
-export const AppHeader: React.FC<Props> = ({
-	setIsMobileOpen,
-	onOpenSprintModal,
-}) => {
+export const AppHeader: React.FC<Props> = ({ setIsMobileOpen }) => {
 	const { user, isAuthenticated } = useAuthStore();
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
@@ -40,13 +36,13 @@ export const AppHeader: React.FC<Props> = ({
 				};
 			case "/class":
 				return {
-					title: "Feed Kelas",
+					title: "Feed & Diskusi Kelas",
 					category: "Komunitas",
 				};
 			case "/admin":
 				return {
-					title: "Monitoring Dosen & TA",
-					category: "Asisten Dosen",
+					title: "Monitoring Kelas",
+					category: "Dosen & TA",
 				};
 			case "/admin-students":
 				return {
@@ -92,25 +88,25 @@ export const AppHeader: React.FC<Props> = ({
 				</div>
 			</div>
 
-			{/* Right: Quick Action & User Context */}
+			{/* Right: User Context */}
 			<div className="flex items-center gap-3 shrink-0">
-				{onOpenSprintModal && user.role === "STUDENT" && (
-					<button
-						type="button"
-						onClick={onOpenSprintModal}
-						className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-					>
-						<Timer size={14} />
-						<span>Catat 25-Min Sprint</span>
-					</button>
-				)}
-
-				<div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200">
-					<div className="text-right">
-						<p className="text-xs font-semibold text-slate-800 leading-tight truncate max-w-[150px]">
+				<div className="flex items-center gap-2.5">
+					<div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700">
+						{user.avatarUrl ? (
+							<img
+								src={user.avatarUrl}
+								alt={user.name}
+								className="w-full h-full object-cover rounded-full"
+							/>
+						) : (
+							user.name.charAt(0).toUpperCase()
+						)}
+					</div>
+					<div className="hidden sm:block text-right">
+						<p className="text-xs font-semibold text-slate-800 leading-tight truncate max-w-[160px]">
 							{user.name}
 						</p>
-						<p className="text-[11px] text-slate-500 font-mono">
+						<p className="text-[11px] text-slate-400 font-mono">
 							{user.className ||
 								(user.role === "ADMIN" ? "Dosen / TA" : "Mahasiswa")}
 						</p>

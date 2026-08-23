@@ -106,6 +106,7 @@ export interface LearningSprint {
 	evidenceUrl?: string | null;
 	evidenceType: EvidenceType;
 	reviewStatus?: "PENDING" | "REVIEWED";
+	needsFeedback?: boolean;
 	instructorFeedback?: string | null;
 	reviewedAt?: string | null;
 	createdAt: string;

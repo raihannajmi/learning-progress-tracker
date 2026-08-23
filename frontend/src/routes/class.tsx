@@ -4,7 +4,7 @@ import {
 	useNavigate,
 	useSearch,
 } from "@tanstack/react-router";
-import { Filter, MessageSquare } from "lucide-react";
+import { Filter, HelpCircle, MessageSquare } from "lucide-react";
 import React from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
@@ -21,6 +21,7 @@ interface ClassSearchParams {
 	page?: number;
 	limit?: number;
 	classId?: string;
+	needsFeedback?: string;
 }
 
 export const Route = createFileRoute("/class")({
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/class")({
 			page: Number(search.page) || 1,
 			limit: Number(search.limit) || 10,
 			classId: (search.classId as string) || undefined,
+			needsFeedback: (search.needsFeedback as string) || undefined,
 		};
 	},
 	component: ClassFeedPage,
@@ -37,11 +39,12 @@ export const Route = createFileRoute("/class")({
 function ClassFeedPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/class" });
-	const { user, isAuthenticated } = useAuthStore();
+	const { isAuthenticated } = useAuthStore();
 
 	const currentPage = searchParams.page || 1;
 	const pageSize = searchParams.limit || 10;
-	const selectedClassId = searchParams.classId || user?.classId || "";
+	const selectedClassId = searchParams.classId || "";
+	const needsFeedbackFilter = searchParams.needsFeedback === "true";
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -68,19 +71,25 @@ function ClassFeedPage() {
 		enabled: isAuthenticated,
 	});
 
-	// Fetch Sprints for class (Server-Side Paginated)
+	// Fetch Sprints for class feed (Server-Side Paginated)
 	const { data: sprintResponse, isLoading } = useQuery<
 		PaginatedResponse<LearningSprint>
 	>({
 		queryKey: [
 			"classSprints",
-			{ classId: selectedClassId, page: currentPage, limit: pageSize },
+			{
+				classId: selectedClassId,
+				needsFeedback: needsFeedbackFilter,
+				page: currentPage,
+				limit: pageSize,
+			},
 		],
 		queryFn: async () => {
 			const params = new URLSearchParams();
 			params.set("page", String(currentPage));
 			params.set("limit", String(pageSize));
 			if (selectedClassId) params.set("classId", selectedClassId);
+			if (needsFeedbackFilter) params.set("needsFeedback", "true");
 
 			const res: any = await api.get(`/sprints?${params.toString()}`);
 			return res;
@@ -95,33 +104,51 @@ function ClassFeedPage() {
 		classesList?.find((c) => c.id === selectedClassId)?.name || "Semua Kelas";
 
 	return (
-		<div className="space-y-6">
-			{/* 1. Header with Class Selector */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div className="space-y-1">
-					<div className="flex items-center gap-2">
-						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-							Komunitas Kelas
-						</span>
-						<span className="text-slate-300">•</span>
-						<span className="text-xs font-medium text-slate-600">
-							Social Accountability
-						</span>
-					</div>
+		<div className="max-w-4xl space-y-6">
+			{/* 1. Header & Context */}
+			<div className="space-y-1">
+				<h1 className="text-xl font-bold tracking-tight text-slate-900">
+					Feed & Diskusi Belajar Kelas
+				</h1>
+				<p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+					Eksplorasi apa yang sedang dipelajari teman sekelas, pelajari kendala
+					bersama, dan berikan evaluasi maupun saran konstruktif.
+				</p>
+			</div>
 
-					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
-						Feed Progres & Peer Feedback
-					</h2>
+			{/* 2. Filter Bar */}
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 pb-1 border-b border-slate-200/80">
+				{/* Status Filter Tabs */}
+				<div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+					<button
+						type="button"
+						onClick={() => updateFilters({ needsFeedback: undefined, page: 1 })}
+						className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+							!needsFeedbackFilter
+								? "bg-slate-900 text-white shadow-xs"
+								: "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+						}`}
+					>
+						Semua Postingan
+					</button>
 
-					<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
-						Lihat apa yang sedang dipelajari teman sekelas, eksplorasi bukti
-						pekerjaan, dan berikan feedback konstruktif.
-					</p>
+					<button
+						type="button"
+						onClick={() => updateFilters({ needsFeedback: "true", page: 1 })}
+						className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+							needsFeedbackFilter
+								? "bg-amber-600 text-white shadow-xs"
+								: "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+						}`}
+					>
+						<HelpCircle size={13} />
+						<span>Minta Asistensi Dosen</span>
+					</button>
 				</div>
 
-				{/* Class Filter Dropdown */}
-				<div className="flex items-center gap-2 shrink-0 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-					<Filter size={14} className="text-slate-400" />
+				{/* Class Selector Dropdown */}
+				<div className="flex items-center gap-2 shrink-0 bg-white px-3 py-1.5 rounded-lg border border-slate-200/90 text-xs">
+					<Filter size={13} className="text-slate-400" />
 					<select
 						value={selectedClassId}
 						onChange={(e) =>
@@ -142,12 +169,12 @@ function ClassFeedPage() {
 				</div>
 			</div>
 
-			{/* 2. Sprints Feed Stream */}
-			<div className="space-y-4">
+			{/* 3. Sprints Post Feed Stream */}
+			<div className="space-y-4 pt-1">
 				{isLoading ? (
-					<div className="space-y-4">
-						<div className="h-36 bg-white border border-slate-200 rounded-xl animate-pulse" />
-						<div className="h-36 bg-white border border-slate-200 rounded-xl animate-pulse" />
+					<div className="space-y-4 animate-pulse">
+						<div className="h-40 bg-slate-100 rounded-xl" />
+						<div className="h-40 bg-slate-100 rounded-xl" />
 					</div>
 				) : sprints && sprints.length > 0 ? (
 					<>
@@ -156,22 +183,34 @@ function ClassFeedPage() {
 						))}
 
 						{pagination && pagination.totalPages > 1 && (
-							<Pagination
-								currentPage={currentPage}
-								totalPages={pagination.totalPages}
-								onPageChange={(page) => updateFilters({ page })}
-								pageSize={pageSize}
-								totalItems={pagination.total}
-								onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
-								pageSizeOptions={[5, 10, 20]}
-							/>
+							<div className="pt-2">
+								<Pagination
+									currentPage={currentPage}
+									totalPages={pagination.totalPages}
+									onPageChange={(page) => updateFilters({ page })}
+									pageSize={pageSize}
+									totalItems={pagination.total}
+									onPageSizeChange={(limit) =>
+										updateFilters({ limit, page: 1 })
+									}
+									pageSizeOptions={[5, 10, 20]}
+								/>
+							</div>
 						)}
 					</>
 				) : (
 					<EmptyState
 						icon={MessageSquare}
-						title={`Belum ada aktivitas di ${activeClassName}`}
-						description="Aktivitas sprint dan refleksi belajar teman sekelas Anda akan muncul secara live di feed ini."
+						title={
+							needsFeedbackFilter
+								? "Tidak ada pertanyaan asistensi yang menunggu"
+								: `Belum ada aktivitas di ${activeClassName}`
+						}
+						description={
+							needsFeedbackFilter
+								? "Semua mahasiswa telah mendapatkan respon, atau belum ada yang meminta asistensi khusus."
+								: "Aktivitas sesi fokus dan refleksi belajar teman sekelas Anda akan muncul secara live di feed ini."
+						}
 					/>
 				)}
 			</div>

@@ -17,6 +17,7 @@ export const createSprintSchema = z.object({
     evidenceType: z
       .enum(['GITHUB', 'GITHUB_PAGES', 'LOOM', 'FIGMA', 'LIVE_DEMO', 'OTHER'])
       .default('OTHER'),
+    needsFeedback: z.boolean().optional(),
   }),
 });
 
@@ -25,6 +26,7 @@ export const querySprintSchema = z.object({
     .object({
       classId: z.string().optional().nullable(),
       userId: z.string().optional().nullable(),
+      needsFeedback: z.string().optional().nullable(),
       page: z.string().optional(),
       limit: z.string().optional(),
     })

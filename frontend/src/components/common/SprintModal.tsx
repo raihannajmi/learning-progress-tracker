@@ -124,6 +124,7 @@ export const SprintModal: React.FC<Props> = ({
 						confusingParts: "",
 						evidenceUrl: "",
 						evidenceType: "GITHUB",
+						needsFeedback: false,
 					}}
 					validationSchema={SprintSchema}
 					onSubmit={async (values) => {
@@ -255,6 +256,27 @@ export const SprintModal: React.FC<Props> = ({
 										<option value="LIVE_DEMO">Live Demo</option>
 										<option value="OTHER">Lainnya</option>
 									</Field>
+								</div>
+							</div>
+
+							<div className="p-3 bg-slate-50 border border-slate-200/80 rounded-lg flex items-start gap-2.5">
+								<Field
+									type="checkbox"
+									name="needsFeedback"
+									id="needsFeedback"
+									className="mt-0.5 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+								/>
+								<div>
+									<label
+										htmlFor="needsFeedback"
+										className="text-xs font-medium text-slate-800 block cursor-pointer"
+									>
+										Minta Asistensi / Tanggapan Dosen & TA
+									</label>
+									<p className="text-[11px] text-slate-500">
+										Tandai sesi ini agar Dosen & Asisten Dosen dapat segera
+										memberikan evaluasi terarah.
+									</p>
 								</div>
 							</div>
 

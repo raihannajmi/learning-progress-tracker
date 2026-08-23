@@ -321,10 +321,11 @@ function AdminDashboardPage() {
 						</div>
 
 						<Link
-							to="/admin-review"
+							to="/class"
+							search={{ needsFeedback: "true" }}
 							className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
 						>
-							Buka Antrean Review Lengkap →
+							Buka Postingan Asistensi di Feed Kelas →
 						</Link>
 					</div>
 
@@ -365,10 +366,11 @@ function AdminDashboardPage() {
 										</a>
 
 										<Link
-											to="/admin-review"
+											to="/class"
+											search={{ needsFeedback: "true" }}
 											className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-xs transition-colors"
 										>
-											Review
+											Tanggapi
 										</Link>
 									</div>
 								</div>

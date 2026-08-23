@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	ChevronLeft,
 	ChevronRight,
-	ClipboardCheck,
 	Code2,
 	Compass,
 	Layers,
@@ -57,7 +56,7 @@ export const AppSidebar: React.FC<Props> = ({
 		},
 		{
 			to: "/class",
-			label: "Feed Kelas",
+			label: "Feed & Diskusi Kelas",
 			icon: Users,
 		},
 	];
@@ -69,9 +68,9 @@ export const AppSidebar: React.FC<Props> = ({
 			icon: ShieldCheck,
 		},
 		{
-			to: "/admin-review",
-			label: "Review & Asistensi",
-			icon: ClipboardCheck,
+			to: "/class",
+			label: "Feed & Diskusi Kelas",
+			icon: Users,
 		},
 		{
 			to: "/admin-students",

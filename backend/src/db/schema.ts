@@ -142,6 +142,7 @@ export const learningSprints = pgTable(
     evidenceUrl: varchar('evidence_url', { length: 500 }),
     evidenceType: evidenceTypeEnum('evidence_type').default('OTHER'),
     reviewStatus: varchar('review_status', { length: 50 }).default('PENDING').notNull(), // "PENDING", "REVIEWED"
+    needsFeedback: boolean('needs_feedback').default(false).notNull(), // Student requested instructor assistance
     instructorFeedback: text('instructor_feedback'),
     reviewedById: uuid('reviewed_by_id').references(() => users.id, { onDelete: 'set null' }),
     reviewedAt: timestamp('reviewed_at'),
@@ -151,6 +152,7 @@ export const learningSprints = pgTable(
     index('learning_sprints_user_id_idx').on(table.userId),
     index('learning_sprints_topic_id_idx').on(table.topicId),
     index('learning_sprints_review_status_idx').on(table.reviewStatus),
+    index('learning_sprints_needs_feedback_idx').on(table.needsFeedback),
     index('learning_sprints_created_at_idx').on(table.createdAt),
   ]
 );

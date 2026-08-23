@@ -1,20 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-	ArrowRight,
-	Calendar,
-	CheckCircle2,
-	Compass,
-	Flame,
-	MessageSquare,
-	Sparkles,
-	Timer,
-} from "lucide-react";
+import { ArrowRight, Flame, Play, Timer } from "lucide-react";
 import React from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
-import { HabitBadge } from "../components/common/HabitBadge.js";
-import { ProgressBar } from "../components/common/ProgressBar.js";
-import { StatCard } from "../components/common/StatCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import { useTimerStore } from "../stores/timerStore.js";
@@ -48,20 +36,10 @@ function StudentDashboard() {
 
 	if (isLoading) {
 		return (
-			<div className="space-y-6">
-				<div className="h-28 bg-white border border-slate-200 rounded-xl animate-pulse" />
-				<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-					{[1, 2, 3, 4].map((i) => (
-						<div
-							key={i}
-							className="h-24 bg-white border border-slate-200 rounded-xl animate-pulse"
-						/>
-					))}
-				</div>
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					<div className="lg:col-span-2 h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
-					<div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
-				</div>
+			<div className="max-w-3xl space-y-8 animate-pulse py-4">
+				<div className="h-28 bg-slate-100 rounded-lg" />
+				<div className="h-24 bg-slate-100 rounded-lg" />
+				<div className="h-36 bg-slate-100 rounded-lg" />
 			</div>
 		);
 	}
@@ -77,215 +55,164 @@ function StudentDashboard() {
 	const firstName = user?.name ? user.name.split(" ")[0] : "Mahasiswa";
 	const totalMins =
 		data.summary.totalMinutesLearned ?? data.summary.totalDurationMinutes ?? 0;
-	const weeklySprints =
-		data.summary.sprintsThisWeek ?? data.summary.weeklySprintsCount ?? 0;
 
 	return (
-		<div className="space-y-6">
-			{/* 1. Above-The-Fold: Focus & Next Action Header */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-				<div className="space-y-1.5 max-w-2xl">
-					<div className="flex items-center gap-2 text-xs text-slate-500">
-						<span className="font-semibold text-slate-900">
-							Halo, {firstName}
-						</span>
-						<span>•</span>
-						<span className="inline-flex items-center gap-1 font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">
-							<Calendar size={12} />
-							<span>Minggu {data.currentWeek.weekNumber} dari 8</span>
-						</span>
-					</div>
+		<div className="max-w-4xl space-y-10 py-2">
+			{/* 1. Editorial Focus Hero: Where am I & What to do next */}
+			<section className="space-y-4">
+				<div className="space-y-1">
+					<p className="text-xs font-mono font-medium text-slate-400">
+						Halo, {firstName} • Minggu {data.currentWeek.weekNumber} dari 8
+					</p>
 
-					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
-						Fokus: {data.currentWeek.title}
-					</h2>
+					<h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">
+						Lanjutkan Belajar:{" "}
+						<span className="text-blue-600">
+							{data.nextAction.suggestedFocus || data.currentWeek.title}
+						</span>
+					</h1>
 
-					<p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+					<p className="text-xs text-slate-600 leading-relaxed max-w-2xl pt-0.5">
 						{data.currentWeek.description}
 					</p>
 				</div>
 
-				<div className="flex items-center gap-2.5 shrink-0">
+				{/* Single Contextual Primary Action */}
+				<div className="flex flex-wrap items-center gap-3 pt-2">
 					<button
 						type="button"
 						onClick={() => openReflectionModal(null, 25)}
-						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+						className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-2 transition-all cursor-pointer hover:shadow-md"
 					>
-						<Timer size={15} />
-						<span>Mulai 25-Min Sprint</span>
+						<Play size={14} className="fill-white" />
+						<span>Mulai Sesi Fokus (25 Menit)</span>
 					</button>
+
+					<span className="text-xs text-slate-500 font-mono">
+						{totalMins} menit fokus terdokumentasi (
+						{data.summary.habitReachedCount}x target habit ≥25m)
+					</span>
+				</div>
+			</section>
+
+			<hr className="border-slate-200/80" />
+
+			{/* 2. Syllabus Mastery Progression (Minimal, Unboxed Layout) */}
+			<section className="space-y-4">
+				<div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+					<div>
+						<h2 className="text-sm font-bold text-slate-900 tracking-tight">
+							Penguasaan Silabus & Kompetensi Mandiri
+						</h2>
+						<p className="text-xs text-slate-500 mt-0.5">
+							{data.summary.completedChecklists} dari{" "}
+							{data.summary.totalChecklists} poin checklist mandiri telah Anda
+							selesaikan ({data.summary.overallPercentage}%)
+						</p>
+					</div>
 
 					<Link
 						to="/roadmap"
-						className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition-colors"
+						className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 shrink-0"
 					>
-						<span>Buka Silabus</span>
-						<ArrowRight size={13} className="text-slate-400" />
+						<span>Lihat Roadmap & Checklist</span>
+						<ArrowRight size={13} />
 					</Link>
 				</div>
-			</div>
 
-			{/* 2. KPI Stat Cards (4-Grid) */}
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-				<StatCard
-					label="Progres Self-Assessment"
-					value={`${data.summary.overallPercentage}%`}
-					subtext={`${data.summary.completedChecklists} dari ${data.summary.totalChecklists} poin mandiri`}
-					icon={CheckCircle2}
-					iconColor="text-emerald-600"
-				/>
-				<StatCard
-					label="Target Kebiasaan (≥25m)"
-					value={`${data.summary.habitReachedCount}x`}
-					subtext="Sesi belajar fokus tercapai"
-					icon={Flame}
-					iconColor="text-amber-500"
-				/>
-				<StatCard
-					label="Total Waktu Belajar"
-					value={`${totalMins}m`}
-					subtext={`Dari ${data.summary.totalSprints} sesi sprint`}
-					icon={Timer}
-					iconColor="text-blue-600"
-				/>
-				<StatCard
-					label="Aktivitas Minggu Ini"
-					value={`${weeklySprints} sprint`}
-					subtext="7 hari terakhir"
-					icon={Compass}
-					iconColor="text-slate-500"
-				/>
-			</div>
+				{/* Minimal Category Progress Pills */}
+				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
+					{data.categoryProgress.map((item) => (
+						<div
+							key={item.category}
+							className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1.5"
+						>
+							<div className="flex items-center justify-between text-xs">
+								<span className="font-semibold text-slate-800 text-[11px] font-mono uppercase">
+									{item.category}
+								</span>
+								<span className="font-mono text-[11px] text-slate-500">
+									{item.percentage}%
+								</span>
+							</div>
 
-			{/* 3. Progress Breakdown Grid */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Category Competency Progress */}
-				<div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-					<div className="flex items-center justify-between pb-3 border-b border-slate-100">
-						<div>
-							<h3 className="text-sm font-semibold text-slate-900">
-								Kompetensi Kategori Materi
-							</h3>
-							<p className="text-xs text-slate-500 mt-0.5">
-								Progres butir checklist yang telah Anda tandai sebagai Mandiri
+							{/* Thin progress line */}
+							<div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+								<div
+									className="bg-blue-600 h-full rounded-full transition-all duration-300"
+									style={{ width: `${item.percentage}%` }}
+								/>
+							</div>
+
+							<p className="text-[10px] text-slate-500 font-mono">
+								{item.independent}/{item.total} Mandiri
 							</p>
 						</div>
-
-						<Link
-							to="/roadmap"
-							className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
-						>
-							Buka Silabus Lengkap →
-						</Link>
-					</div>
-
-					<div className="space-y-4 pt-1">
-						{data.categoryProgress.map((item) => (
-							<div key={item.category} className="space-y-1.5">
-								<div className="flex items-center justify-between text-xs">
-									<span className="font-medium text-slate-700">
-										{item.category}
-									</span>
-									<span className="font-mono text-slate-500 text-[11px]">
-										{item.independent} dari {item.total} butir (
-										{item.percentage}
-										%)
-									</span>
-								</div>
-								<ProgressBar percentage={item.percentage} />
-							</div>
-						))}
-					</div>
+					))}
 				</div>
+			</section>
 
-				{/* Next Recommended Action */}
-				<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
-					<div className="space-y-3">
-						<div className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 uppercase tracking-wider">
-							<Sparkles size={14} />
-							<span>Langkah Rekomendasi</span>
-						</div>
+			<hr className="border-slate-200/80" />
 
-						<h3 className="text-sm font-bold text-slate-900 leading-snug">
-							{data.nextAction.suggestedFocus}
-						</h3>
-
-						<p className="text-xs text-slate-500 leading-relaxed">
-							Target minimal belajar Anda berikutnya adalah sesi fokus 25 menit
-							untuk menyelesaikan topik ini dan mencatat bukti latihan.
-						</p>
-					</div>
-
-					<button
-						type="button"
-						onClick={() => openReflectionModal(null, 25)}
-						className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
-					>
-						Catat Refleksi Topik Ini
-					</button>
-				</div>
-			</div>
-
-			{/* 4. Recent Sprint Reflections Stream */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-				<div className="flex items-center justify-between pb-3 border-b border-slate-100">
+			{/* 3. Recent Learning Activity Stream (Chronological Natural List) */}
+			<section className="space-y-4">
+				<div className="flex items-center justify-between">
 					<div>
-						<h3 className="text-sm font-semibold text-slate-900">
-							Riwayat Sprint Belajar Terbaru
-						</h3>
+						<h2 className="text-sm font-bold text-slate-900 tracking-tight">
+							Aktivitas Pembelajaran Terbaru
+						</h2>
 						<p className="text-xs text-slate-500 mt-0.5">
-							Sesi fokus dan catatan kendala belajar Anda
+							Refleksi sesi fokus dan catatan latihan Anda
 						</p>
 					</div>
 
 					<Link
-						to="/sprints"
-						className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+						to="/class"
+						className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
 					>
-						Lihat Semua Sprint →
+						<span>Buka Feed & Diskusi Kelas</span>
+						<ArrowRight size={13} />
 					</Link>
 				</div>
 
 				{data.recentSprints && data.recentSprints.length > 0 ? (
-					<div className="divide-y divide-slate-100">
-						{data.recentSprints.map((sprint) => (
-							<div key={sprint.id} className="py-3.5 first:pt-0 last:pb-0">
-								<div className="flex items-start justify-between gap-4">
-									<div className="space-y-1 min-w-0">
-										<div className="flex items-center gap-2">
-											<span className="text-xs font-semibold text-slate-900 truncate">
-												{sprint.topic?.title || "Belajar Mandiri"}
-											</span>
-											<span className="text-slate-300">•</span>
-											<span className="text-[11px] font-mono text-slate-400">
-												{new Date(sprint.createdAt).toLocaleDateString(
-													"id-ID",
-													{
-														day: "numeric",
-														month: "short",
-														hour: "2-digit",
-														minute: "2-digit",
-													},
-												)}
-											</span>
-										</div>
-
-										<p className="text-xs text-slate-600 line-clamp-2">
-											{sprint.whatLearned}
-										</p>
-									</div>
-
-									<div className="flex items-center gap-2 shrink-0">
-										<HabitBadge
-											durationMinutes={sprint.durationMinutes}
-											isHabitQualified={sprint.isHabitQualified}
-										/>
-
-										<span className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200">
-											<MessageSquare size={12} className="text-slate-400" />
-											<span>{sprint.feedbacks?.length || 0} feedback</span>
+					<div className="divide-y divide-slate-100 border-y border-slate-100">
+						{data.recentSprints.slice(0, 4).map((sprint) => (
+							<div
+								key={sprint.id}
+								className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+							>
+								<div className="space-y-1 min-w-0">
+									<div className="flex items-center gap-2">
+										<span className="font-semibold text-slate-900">
+											{sprint.topic?.title || "Belajar Mandiri"}
+										</span>
+										<span className="text-slate-300">•</span>
+										<span className="font-mono text-[11px] text-slate-400">
+											{new Date(sprint.createdAt).toLocaleDateString("id-ID", {
+												day: "numeric",
+												month: "short",
+												hour: "2-digit",
+												minute: "2-digit",
+											})}
 										</span>
 									</div>
+
+									<p className="text-slate-600 line-clamp-1">
+										{sprint.whatLearned}
+									</p>
+								</div>
+
+								<div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+									<span className="font-mono text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-sm">
+										{sprint.durationMinutes} menit
+									</span>
+									{sprint.isHabitQualified && (
+										<span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-sm text-[11px] font-mono border border-amber-200 inline-flex items-center gap-1">
+											<Flame size={11} className="text-amber-500" />
+											<span>Habit</span>
+										</span>
+									)}
 								</div>
 							</div>
 						))}
@@ -293,13 +220,13 @@ function StudentDashboard() {
 				) : (
 					<EmptyState
 						icon={Timer}
-						title="Belum ada catatan sprint"
-						description="Mulai belajar minimal 25 menit dan catat refleksi pertama Anda untuk memantau konsistensi."
-						actionLabel="Mulai Sesi Belajar Pertama"
+						title="Belum ada catatan sprint belajar"
+						description="Mulai sesi fokus 25 menit pertama Anda untuk membangun kebiasaan belajar konsisten."
+						actionLabel="Mulai Sesi Fokus Pertama"
 						onAction={() => openReflectionModal(null, 25)}
 					/>
 				)}
-			</div>
+			</section>
 		</div>
 	);
 }
