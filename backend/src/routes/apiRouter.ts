@@ -38,6 +38,8 @@ apiRouter.get('/auth/me', authenticate, AuthController.getMe);
 // 2. Classes
 apiRouter.get('/classes', authenticate, ClassController.list);
 apiRouter.post('/classes', authenticate, requireRole('ADMIN'), ClassController.create);
+apiRouter.patch('/classes/:id', authenticate, requireRole('ADMIN'), ClassController.update);
+apiRouter.delete('/classes/:id', authenticate, requireRole('ADMIN'), ClassController.delete);
 
 // 3. Admin student management (whitelist)
 apiRouter.get('/admin/students', authenticate, requireRole('ADMIN'), AdminStudentController.list);

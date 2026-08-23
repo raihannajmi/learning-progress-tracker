@@ -168,6 +168,7 @@ export class DashboardService {
         nim: users.nim,
         classId: users.classId,
         className: classes.name,
+        classStartDate: classes.startDate,
         avatarUrl: users.avatarUrl,
         githubRepoUrl: users.githubRepoUrl,
         githubPageUrl: users.githubPageUrl,
@@ -211,13 +212,6 @@ export class DashboardService {
       .where(studentConditions.length > 1 ? and(...studentConditions) : eq(users.role, 'STUDENT'))
       .orderBy(desc(learningSprints.createdAt));
 
-    // Active students in last 7 days
-    const activeStudentIdSet = new Set(
-      allSprints
-        .filter((s) => new Date(s.createdAt) >= sevenDaysAgo)
-        .map((s) => s.userId)
-    );
-
     // 3. Peer feedback count
     const [fbCountRes] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -260,7 +254,11 @@ export class DashboardService {
       .sort((a, b) => b.mentions - a.mentions)
       .slice(0, 8);
 
-    // 5. Students Needing Attention (No recent activity in 7 days)
+    // 5. Students Needing Attention (Calculated from Class Start Date & 7-Day Inactivity Window)
+    const now = new Date();
+    const defaultSevenDaysAgo = new Date();
+    defaultSevenDaysAgo.setDate(defaultSevenDaysAgo.getDate() - 7);
+
     const latestSprintPerUser = new Map<string, Date>();
     allSprints.forEach((s) => {
       if (!latestSprintPerUser.has(s.userId)) {
@@ -268,21 +266,64 @@ export class DashboardService {
       }
     });
 
-    const studentsNeedingAttention = students
-      .filter((s) => !activeStudentIdSet.has(s.id))
-      .map((s) => ({
-        id: s.id,
-        name: s.name,
-        email: s.email,
-        nim: s.nim,
-        className: s.className,
-        avatarUrl: s.avatarUrl,
-        lastActivity: latestSprintPerUser.get(s.id) || null,
-        statusLabel: latestSprintPerUser.has(s.id)
-          ? 'Belum ada aktivitas minggu ini'
-          : 'Belum pernah mencatat sprint',
-      }))
-      .slice(0, 15);
+    const activeStudentIdSet = new Set<string>();
+    const studentsNeedingAttention: Array<{
+      id: string;
+      name: string;
+      email: string;
+      nim: string | null;
+      className: string | null;
+      avatarUrl: string | null;
+      lastActivity: Date | null;
+      statusLabel: string;
+    }> = [];
+
+    for (const s of students) {
+      const lastActivity = latestSprintPerUser.get(s.id) || null;
+      const classStartDate = s.classStartDate ? new Date(s.classStartDate) : null;
+
+      // If class start date is in the future, the class hasn't started yet
+      if (classStartDate && now < classStartDate) {
+        if (lastActivity) {
+          activeStudentIdSet.add(s.id);
+        }
+        continue;
+      }
+
+      // Threshold is the later of (7 days ago) or (class start date)
+      const activeThreshold = classStartDate && classStartDate > defaultSevenDaysAgo
+        ? classStartDate
+        : defaultSevenDaysAgo;
+
+      const hasRecentActivity = lastActivity && lastActivity >= activeThreshold;
+
+      if (hasRecentActivity) {
+        activeStudentIdSet.add(s.id);
+      } else {
+        let statusLabel = 'Belum pernah mencatat sprint';
+        if (lastActivity) {
+          statusLabel = 'Belum ada aktivitas minggu ini';
+        } else if (classStartDate) {
+          const formattedDate = new Intl.DateTimeFormat('id-ID', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          }).format(classStartDate);
+          statusLabel = `Belum ada sprint sejak perkuliahan dimulai (${formattedDate})`;
+        }
+
+        studentsNeedingAttention.push({
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          nim: s.nim,
+          className: s.className,
+          avatarUrl: s.avatarUrl,
+          lastActivity,
+          statusLabel,
+        });
+      }
+    }
 
     // 6. Recent Evidences
     const recentEvidences = allSprints

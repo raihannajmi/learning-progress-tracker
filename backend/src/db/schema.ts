@@ -36,6 +36,7 @@ export const classes = pgTable('classes', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 100 }).notNull(), // e.g. "Kelas A", "Kelas B"
   academicTerm: varchar('academic_term', { length: 50 }).notNull(), // e.g. "2026/2027 Ganjil"
+  startDate: timestamp('start_date'), // Tanggal mulai perkuliahan (e.g. 2026-08-19)
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

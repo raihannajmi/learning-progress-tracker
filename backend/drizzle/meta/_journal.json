@@ -15,6 +15,13 @@
       "when": 1787467595217,
       "tag": "0001_clammy_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787474496690,
+      "tag": "0002_workable_paper_doll",
+      "breakpoints": true
     }
   ]
 }

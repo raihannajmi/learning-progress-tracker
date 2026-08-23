@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminActivityRouteImport } from './routes/admin-activity'
 import { Route as AdminAttentionRouteImport } from './routes/admin-attention'
+import { Route as AdminClassesRouteImport } from './routes/admin-classes'
 import { Route as AdminConfusionsRouteImport } from './routes/admin-confusions'
 import { Route as AdminReviewRouteImport } from './routes/admin-review'
 import { Route as AdminRoadmapRouteImport } from './routes/admin-roadmap'
@@ -40,6 +41,11 @@ const AdminActivityRoute = AdminActivityRouteImport.update({
 const AdminAttentionRoute = AdminAttentionRouteImport.update({
   id: '/admin-attention',
   path: '/admin-attention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminClassesRoute = AdminClassesRouteImport.update({
+  id: '/admin-classes',
+  path: '/admin-classes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminConfusionsRoute = AdminConfusionsRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/admin-activity': typeof AdminActivityRoute
   '/admin-attention': typeof AdminAttentionRoute
+  '/admin-classes': typeof AdminClassesRoute
   '/admin-confusions': typeof AdminConfusionsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/admin-activity': typeof AdminActivityRoute
   '/admin-attention': typeof AdminAttentionRoute
+  '/admin-classes': typeof AdminClassesRoute
   '/admin-confusions': typeof AdminConfusionsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/admin-activity': typeof AdminActivityRoute
   '/admin-attention': typeof AdminAttentionRoute
+  '/admin-classes': typeof AdminClassesRoute
   '/admin-confusions': typeof AdminConfusionsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-activity'
     | '/admin-attention'
+    | '/admin-classes'
     | '/admin-confusions'
     | '/admin-review'
     | '/admin-roadmap'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-activity'
     | '/admin-attention'
+    | '/admin-classes'
     | '/admin-confusions'
     | '/admin-review'
     | '/admin-roadmap'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-activity'
     | '/admin-attention'
+    | '/admin-classes'
     | '/admin-confusions'
     | '/admin-review'
     | '/admin-roadmap'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AdminActivityRoute: typeof AdminActivityRoute
   AdminAttentionRoute: typeof AdminAttentionRoute
+  AdminClassesRoute: typeof AdminClassesRoute
   AdminConfusionsRoute: typeof AdminConfusionsRoute
   AdminReviewRoute: typeof AdminReviewRoute
   AdminRoadmapRoute: typeof AdminRoadmapRoute
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/admin-attention'
       fullPath: '/admin-attention'
       preLoaderRoute: typeof AdminAttentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-classes': {
+      id: '/admin-classes'
+      path: '/admin-classes'
+      fullPath: '/admin-classes'
+      preLoaderRoute: typeof AdminClassesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-confusions': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AdminActivityRoute: AdminActivityRoute,
   AdminAttentionRoute: AdminAttentionRoute,
+  AdminClassesRoute: AdminClassesRoute,
   AdminConfusionsRoute: AdminConfusionsRoute,
   AdminReviewRoute: AdminReviewRoute,
   AdminRoadmapRoute: AdminRoadmapRoute,

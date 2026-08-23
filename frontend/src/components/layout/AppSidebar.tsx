@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	AlertCircle,
+	Calendar,
 	ChevronLeft,
 	ChevronRight,
 	Code2,
@@ -89,6 +90,11 @@ export const AppSidebar: React.FC<Props> = ({
 			to: "/class",
 			label: "Feed & Diskusi Kelas",
 			icon: Users,
+		},
+		{
+			to: "/admin-classes",
+			label: "Kelola Kelas & Jadwal",
+			icon: Calendar,
 		},
 		{
 			to: "/admin-students",

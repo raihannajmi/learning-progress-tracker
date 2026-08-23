@@ -54,6 +54,7 @@ export interface ClassGroup {
 	id: string;
 	name: string;
 	academicTerm: string;
+	startDate?: string | null;
 	studentCount?: number;
 }
 
