@@ -4,7 +4,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || '';
+
+const client = new OAuth2Client(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI
+);
 
 export interface GoogleProfile {
   email: string;
@@ -29,7 +36,7 @@ export const verifyGoogleCredential = async (
     };
   }
 
-  // 2. Real Google OAuth ID Token verification
+  // 2. Try verifying as Google ID Token (standard for @react-oauth/google <GoogleLogin />)
   try {
     const ticket = await client.verifyIdToken({
       idToken: credentialOrToken,
@@ -38,7 +45,10 @@ export const verifyGoogleCredential = async (
 
     const payload = ticket.getPayload();
     if (!payload || !payload.email) {
-      throw new Error('Invalid Google token: email not found in payload');
+      const error: any = new Error('Invalid Google token: email not found in token payload');
+      error.statusCode = 401;
+      error.code = 'INVALID_GOOGLE_TOKEN';
+      throw error;
     }
 
     return {
@@ -47,13 +57,36 @@ export const verifyGoogleCredential = async (
       picture: payload.picture,
       sub: payload.sub,
     };
-  } catch (error: any) {
-    // If not matching ID token format and client ID is mock, provide informative error
-    if (process.env.NODE_ENV !== 'production' && GOOGLE_CLIENT_ID === 'mock-client-id-for-dev') {
-      throw new Error(
-        `Google token verification failed: ${error.message}. (In dev mode, you can pass 'dev-mock:your-email' to test whitelisted emails)`
-      );
+  } catch (idTokenError: any) {
+    // 3. Fallback: Check if it's an OAuth2 Authorization Code
+    if (GOOGLE_CLIENT_SECRET && credentialOrToken.length > 20) {
+      try {
+        const { tokens } = await client.getToken(credentialOrToken);
+        if (tokens.id_token) {
+          const ticket = await client.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: GOOGLE_CLIENT_ID ? [GOOGLE_CLIENT_ID] : undefined,
+          });
+          const payload = ticket.getPayload();
+          if (payload?.email) {
+            return {
+              email: payload.email.toLowerCase(),
+              name: payload.name || payload.email.split('@')[0],
+              picture: payload.picture,
+              sub: payload.sub,
+            };
+          }
+        }
+      } catch (codeError: any) {
+        // Fall through to error handler below
+      }
     }
-    throw new Error(`Google token verification failed: ${error.message}`);
+
+    const error: any = new Error(
+      `Verifikasi token Google gagal: ${idTokenError.message}`
+    );
+    error.statusCode = 401;
+    error.code = 'INVALID_GOOGLE_TOKEN';
+    throw error;
   }
 };

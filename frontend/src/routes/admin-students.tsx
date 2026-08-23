@@ -3,17 +3,18 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import {
 	Code2,
+	Eye,
 	FileSpreadsheet,
 	Filter,
 	Globe,
+	Plus,
 	Search,
 	Trash2,
-	UserPlus,
-	Users,
 	X,
 } from "lucide-react";
 import React, { useState } from "react";
 import * as Yup from "yup";
+import { StudentDetailModal } from "../components/common/StudentDetailModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import type { ClassGroup } from "../types/index.js";
@@ -50,6 +51,7 @@ function AdminStudentsPage() {
 	const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 	const [batchClassId, setBatchClassId] = useState("");
 	const [batchText, setBatchText] = useState("");
+	const [inspectedStudent, setInspectedStudent] = useState<any | null>(null);
 	const [batchResult, setBatchResult] = useState<{
 		added: number;
 		skipped: number;
@@ -136,7 +138,6 @@ function AdminStudentsPage() {
 	const handleProcessBatch = () => {
 		if (!batchClassId || !batchText.trim()) return;
 
-		// Parse lines: Name, Email, NIM
 		const lines = batchText.split("\n");
 		const parsedStudents: any[] = [];
 
@@ -162,54 +163,67 @@ function AdminStudentsPage() {
 	};
 
 	return (
-		<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-			{/* Header */}
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-				<div>
-					<div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 mb-2">
-						<Users size={13} />
-						<span>Manajemen Whitelist Mahasiswa</span>
+		<div className="space-y-6">
+			{/* 1. Header & Quick Actions */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div className="space-y-1">
+					<div className="flex items-center gap-2">
+						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+							Administrasi
+						</span>
+						<span className="text-slate-300">•</span>
+						<span className="text-xs font-medium text-slate-600">
+							Whitelist Google OAuth
+						</span>
 					</div>
-					<h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-						Daftar & Hak Akses Mahasiswa
-					</h1>
-					<p className="text-xs text-slate-500 mt-1 max-w-xl">
+
+					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
+						Manajemen Whitelist Mahasiswa
+					</h2>
+
+					<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
 						Sistem menggunakan Google OAuth berbasis whitelist. Hanya mahasiswa
-						yang emailnya terdaftar di sini yang dapat login.
+						yang emailnya terdaftar yang dapat masuk dan mencatat progres.
 					</p>
 				</div>
 
 				<div className="flex items-center gap-2.5 shrink-0">
 					<button
+						type="button"
 						onClick={() => {
 							setBatchResult(null);
 							setIsBatchModalOpen(true);
 						}}
-						className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition-all cursor-pointer"
+						className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 					>
-						<FileSpreadsheet size={15} />
-						<span>Batch Import (CSV)</span>
+						<FileSpreadsheet size={14} />
+						<span>Batch Import CSV</span>
 					</button>
+
 					<button
+						type="button"
 						onClick={() => setIsAddModalOpen(true)}
-						className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-200 inline-flex items-center gap-1.5 transition-all cursor-pointer"
+						className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 					>
-						<UserPlus size={15} />
+						<Plus size={14} />
 						<span>Tambah Mahasiswa</span>
 					</button>
 				</div>
 			</div>
 
-			{/* Filter & Search Bar */}
-			<div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-				<div className="relative flex-1">
-					<Search size={15} className="absolute left-3 top-3 text-slate-400" />
+			{/* 2. Filters & Search Bar */}
+			<div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+				<div className="relative flex-1 max-w-md">
+					<Search
+						size={15}
+						className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+					/>
 					<input
 						type="text"
-						placeholder="Cari berdasarkan Nama, Email, atau NIM..."
+						placeholder="Cari nama, email, atau NIM..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500"
+						className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
 					/>
 				</div>
 
@@ -218,7 +232,7 @@ function AdminStudentsPage() {
 					<select
 						value={selectedClassFilter}
 						onChange={(e) => setSelectedClassFilter(e.target.value)}
-						className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+						className="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
 					>
 						<option value="">Semua Kelas</option>
 						{classesList?.map((c) => (
@@ -230,25 +244,28 @@ function AdminStudentsPage() {
 				</div>
 			</div>
 
-			{/* Table of Students */}
-			<div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+			{/* 3. Students Data Table */}
+			<div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
 				<div className="overflow-x-auto">
-					<table className="w-full text-left text-xs text-slate-700">
-						<thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+					<table className="w-full text-left text-xs">
+						<thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
 							<tr>
-								<th className="px-5 py-3">Nama Mahasiswa</th>
+								<th className="px-5 py-3">Mahasiswa</th>
 								<th className="px-4 py-3">NIM</th>
 								<th className="px-4 py-3">Kelas</th>
-								<th className="px-4 py-3">Sprints / Mandiri</th>
-								<th className="px-4 py-3">Evidence Links</th>
+								<th className="px-4 py-3">Aktivitas</th>
+								<th className="px-4 py-3">Portfolio</th>
 								<th className="px-4 py-3 text-right">Aksi</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-slate-100">
 							{isLoading ? (
 								<tr>
-									<td colSpan={6} className="text-center py-8 text-slate-400">
-										Memuat data mahasiswa...
+									<td
+										colSpan={6}
+										className="px-5 py-8 text-center text-slate-400"
+									>
+										Memuat daftar whitelist mahasiswa...
 									</td>
 								</tr>
 							) : students && students.length > 0 ? (
@@ -257,20 +274,21 @@ function AdminStudentsPage() {
 										key={st.id}
 										className="hover:bg-slate-50/60 transition-colors"
 									>
-										<td className="px-5 py-3.5">
+										<td className="px-5 py-3">
 											<div className="flex items-center gap-2.5">
-												<img
-													src={
-														st.avatarUrl ||
-														`https://ui-avatars.com/api/?name=${encodeURIComponent(
-															st.name,
-														)}&background=6366f1&color=fff`
-													}
-													alt={st.name}
-													className="w-7 h-7 rounded-full object-cover"
-												/>
-												<div>
-													<span className="font-bold text-slate-900 block">
+												<div className="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-xs text-slate-700 shrink-0">
+													{st.avatarUrl ? (
+														<img
+															src={st.avatarUrl}
+															alt={st.name}
+															className="w-full h-full object-cover rounded-md"
+														/>
+													) : (
+														st.name.charAt(0).toUpperCase()
+													)}
+												</div>
+												<div className="min-w-0">
+													<span className="font-semibold text-slate-900 block truncate">
 														{st.name}
 													</span>
 													<span className="text-[11px] text-slate-400 font-mono">
@@ -280,33 +298,33 @@ function AdminStudentsPage() {
 											</div>
 										</td>
 
-										<td className="px-4 py-3.5 font-mono font-medium">
+										<td className="px-4 py-3 font-mono font-medium text-slate-600">
 											{st.nim || "-"}
 										</td>
 
-										<td className="px-4 py-3.5">
-											<span className="px-2 py-0.5 rounded-sm bg-slate-100 text-slate-700 font-semibold text-[10px]">
+										<td className="px-4 py-3">
+											<span className="px-2 py-0.5 rounded-sm bg-slate-100 text-slate-700 font-medium text-[11px]">
 												{st.className || "-"}
 											</span>
 										</td>
 
-										<td className="px-4 py-3.5">
-											<span className="font-mono text-indigo-600 font-bold">
-												{st.sprintCount || 0} sprints
+										<td className="px-4 py-3">
+											<span className="font-mono text-blue-600 font-semibold">
+												{st.sprintCount || 0} sprint
 											</span>
-											<span className="text-slate-400 text-[10px] ml-1">
+											<span className="text-slate-400 text-[11px] ml-1">
 												({st.checkedCount || 0} mandiri)
 											</span>
 										</td>
 
-										<td className="px-4 py-3.5">
+										<td className="px-4 py-3">
 											<div className="flex items-center gap-2">
 												{st.githubRepoUrl && (
 													<a
 														href={st.githubRepoUrl}
 														target="_blank"
 														rel="noopener noreferrer"
-														className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-sm"
+														className="p-1 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-sm"
 														title="GitHub Repo"
 													>
 														<Code2 size={14} />
@@ -317,7 +335,7 @@ function AdminStudentsPage() {
 														href={st.githubPageUrl}
 														target="_blank"
 														rel="noopener noreferrer"
-														className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-sm"
+														className="p-1 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-sm"
 														title="GitHub Pages Live"
 													>
 														<Globe size={14} />
@@ -329,20 +347,31 @@ function AdminStudentsPage() {
 											</div>
 										</td>
 
-										<td className="px-4 py-3.5 text-right">
-											<button
-												onClick={() => {
-													if (
-														confirm(`Hapus ${st.name} dari whitelist sistem?`)
-													) {
-														deleteMutation.mutate(st.id);
-													}
-												}}
-												className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-												title="Hapus Mahasiswa"
-											>
-												<Trash2 size={15} />
-											</button>
+										<td className="px-4 py-3 text-right">
+											<div className="flex items-center justify-end gap-1">
+												<button
+													type="button"
+													onClick={() => setInspectedStudent(st)}
+													className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+													title="Lihat Detail Progres Mahasiswa"
+												>
+													<Eye size={14} />
+												</button>
+												<button
+													type="button"
+													onClick={() => {
+														if (
+															confirm(`Hapus ${st.name} dari whitelist sistem?`)
+														) {
+															deleteMutation.mutate(st.id);
+														}
+													}}
+													className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+													title="Hapus Mahasiswa"
+												>
+													<Trash2 size={14} />
+												</button>
+											</div>
 										</td>
 									</tr>
 								))
@@ -350,9 +379,9 @@ function AdminStudentsPage() {
 								<tr>
 									<td
 										colSpan={6}
-										className="text-center py-10 text-slate-400 text-xs"
+										className="px-5 py-12 text-center text-slate-400"
 									>
-										Tidak ada mahasiswa ditemukan.
+										Tidak ada mahasiswa ditemukan untuk filter pencarian ini.
 									</td>
 								</tr>
 							)}
@@ -361,15 +390,16 @@ function AdminStudentsPage() {
 				</div>
 			</div>
 
-			{/* Modal: Add Single Student */}
+			{/* Add Single Student Modal */}
 			{isAddModalOpen && (
-				<div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-					<div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
-						<div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-							<h3 className="text-sm font-bold text-slate-900">
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+					<div className="bg-white rounded-xl max-w-md w-full p-6 shadow-lg border border-slate-200">
+						<div className="flex items-center justify-between pb-3 border-b border-slate-100">
+							<h3 className="text-base font-semibold text-slate-900">
 								Tambah Mahasiswa ke Whitelist
 							</h3>
 							<button
+								type="button"
 								onClick={() => setIsAddModalOpen(false)}
 								className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
 							>
@@ -387,115 +417,124 @@ function AdminStudentsPage() {
 								githubPageUrl: "",
 							}}
 							validationSchema={SingleStudentSchema}
-							onSubmit={(values) => {
-								addStudentMutation.mutate(values);
+							onSubmit={async (values) => {
+								await addStudentMutation.mutateAsync(values);
 							}}
 						>
 							{({ isSubmitting }) => (
-								<Form className="space-y-3 text-xs">
+								<Form className="space-y-4 mt-4">
 									<div>
-										<label className="block font-semibold text-slate-700 mb-1">
-											Nama Lengkap *
+										<label className="block text-xs font-medium text-slate-700 mb-1">
+											Nama Lengkap <span className="text-rose-500">*</span>
 										</label>
 										<Field
 											type="text"
 											name="name"
-											placeholder="Contoh: Rian Hidayat"
-											className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500"
+											placeholder="Contoh: Muhammad Zahi Ustadzi"
+											className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
 										/>
 										<ErrorMessage
 											name="name"
 											component="div"
-											className="text-rose-600 text-[10px] mt-0.5"
-										/>
-									</div>
-
-									<div>
-										<label className="block font-semibold text-slate-700 mb-1">
-											Email Akun Google *
-										</label>
-										<Field
-											type="email"
-											name="email"
-											placeholder="rian@student.univ.ac.id"
-											className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500"
-										/>
-										<ErrorMessage
-											name="email"
-											component="div"
-											className="text-rose-600 text-[10px] mt-0.5"
+											className="text-rose-500 text-[11px] mt-0.5"
 										/>
 									</div>
 
 									<div className="grid grid-cols-2 gap-3">
 										<div>
-											<label className="block font-semibold text-slate-700 mb-1">
-												NIM *
+											<label className="block text-xs font-medium text-slate-700 mb-1">
+												Email Google <span className="text-rose-500">*</span>
 											</label>
 											<Field
-												type="text"
-												name="nim"
-												placeholder="2026099"
-												className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 font-mono"
+												type="email"
+												name="email"
+												placeholder="email@students.unnes.ac.id"
+												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
 											/>
 											<ErrorMessage
-												name="nim"
+												name="email"
 												component="div"
-												className="text-rose-600 text-[10px] mt-0.5"
+												className="text-rose-500 text-[11px] mt-0.5"
 											/>
 										</div>
 
 										<div>
-											<label className="block font-semibold text-slate-700 mb-1">
-												Kelas *
+											<label className="block text-xs font-medium text-slate-700 mb-1">
+												NIM <span className="text-rose-500">*</span>
 											</label>
 											<Field
-												as="select"
-												name="classId"
-												className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 bg-white"
-											>
-												{classesList?.map((c) => (
-													<option key={c.id} value={c.id}>
-														{c.name}
-													</option>
-												))}
-											</Field>
+												type="text"
+												name="nim"
+												placeholder="250414006"
+												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+											/>
 											<ErrorMessage
-												name="classId"
+												name="nim"
 												component="div"
-												className="text-rose-600 text-[10px] mt-0.5"
+												className="text-rose-500 text-[11px] mt-0.5"
 											/>
 										</div>
 									</div>
 
 									<div>
-										<label className="block font-semibold text-slate-700 mb-1">
-											GitHub Repo URL (Opsional)
+										<label className="block text-xs font-medium text-slate-700 mb-1">
+											Kelas <span className="text-rose-500">*</span>
 										</label>
 										<Field
-											type="url"
-											name="githubRepoUrl"
-											placeholder="https://github.com/username/repo"
-											className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 font-mono"
-										/>
+											as="select"
+											name="classId"
+											className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+										>
+											{classesList?.map((cls) => (
+												<option key={cls.id} value={cls.id}>
+													{cls.name}
+												</option>
+											))}
+										</Field>
+									</div>
+
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<label className="block text-xs font-medium text-slate-700 mb-1">
+												URL GitHub Repo (Opsional)
+											</label>
+											<Field
+												type="url"
+												name="githubRepoUrl"
+												placeholder="https://github.com/..."
+												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+											/>
+										</div>
+
+										<div>
+											<label className="block text-xs font-medium text-slate-700 mb-1">
+												URL GitHub Pages (Opsional)
+											</label>
+											<Field
+												type="url"
+												name="githubPageUrl"
+												placeholder="https://...github.io"
+												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+											/>
+										</div>
 									</div>
 
 									<div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
 										<button
 											type="button"
 											onClick={() => setIsAddModalOpen(false)}
-											className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+											className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
 										>
 											Batal
 										</button>
 										<button
 											type="submit"
 											disabled={isSubmitting || addStudentMutation.isPending}
-											className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer disabled:opacity-50"
+											className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs cursor-pointer disabled:opacity-50"
 										>
-											{addStudentMutation.isPending
+											{isSubmitting || addStudentMutation.isPending
 												? "Menyimpan..."
-												: "Daftarkan"}
+												: "Simpan Mahasiswa"}
 										</button>
 									</div>
 								</Form>
@@ -505,15 +544,16 @@ function AdminStudentsPage() {
 				</div>
 			)}
 
-			{/* Modal: Batch Import */}
+			{/* Batch Import CSV Modal */}
 			{isBatchModalOpen && (
-				<div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-					<div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
-						<div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-							<h3 className="text-sm font-bold text-slate-900">
-								Batch Import Mahasiswa (CSV / Text)
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+					<div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-lg border border-slate-200">
+						<div className="flex items-center justify-between pb-3 border-b border-slate-100">
+							<h3 className="text-base font-semibold text-slate-900">
+								Batch Import Mahasiswa (CSV / Teks)
 							</h3>
 							<button
+								type="button"
 								onClick={() => setIsBatchModalOpen(false)}
 								className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
 							>
@@ -521,42 +561,46 @@ function AdminStudentsPage() {
 							</button>
 						</div>
 
-						<div className="space-y-3 text-xs">
+						<div className="space-y-4 mt-4 text-xs">
 							<div>
-								<label className="block font-semibold text-slate-700 mb-1">
+								<label className="block text-xs font-medium text-slate-700 mb-1">
 									Pilih Kelas Tujuan
 								</label>
 								<select
-									value={batchClassId || classesList?.[0]?.id || ""}
+									value={batchClassId}
 									onChange={(e) => setBatchClassId(e.target.value)}
-									className="w-full p-2 rounded-lg border border-slate-300 bg-white"
+									className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white"
 								>
-									{classesList?.map((c) => (
-										<option key={c.id} value={c.id}>
-											{c.name}
+									<option value="">-- Pilih Kelas --</option>
+									{classesList?.map((cls) => (
+										<option key={cls.id} value={cls.id}>
+											{cls.name}
 										</option>
 									))}
 								</select>
 							</div>
 
 							<div>
-								<label className="block font-semibold text-slate-700 mb-1">
-									Paste Data Mahasiswa (Format: Nama, Email, NIM per baris)
+								<label className="block text-xs font-medium text-slate-700 mb-1">
+									Tempel Data Mahasiswa (1 baris per mahasiswa)
 								</label>
+								<p className="text-[11px] text-slate-500 mb-1.5">
+									Format: <code>Nama, Email, NIM, [RepoURL], [PagesURL]</code>
+								</p>
 								<textarea
 									rows={6}
 									value={batchText}
 									onChange={(e) => setBatchText(e.target.value)}
-									placeholder={`Andi Pratama, andi@student.univ.ac.id, 2026001\nBudi Santoso, budi@student.univ.ac.id, 2026002\nCitra Lestari, citra@student.univ.ac.id, 2026003`}
-									className="w-full p-2.5 rounded-lg border border-slate-300 font-mono text-[11px] focus:ring-2 focus:ring-indigo-500"
+									placeholder={`Andi Pratama, andi@students.unnes.ac.id, 250414001\nBudi Santoso, budi@students.unnes.ac.id, 250414002`}
+									className="w-full p-2.5 rounded-lg border border-slate-200 font-mono text-[11px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
 								/>
 							</div>
 
 							{batchResult && (
-								<div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-[11px]">
-									<p className="font-bold">
-										✅ Selesai: {batchResult.added} mahasiswa berhasil
-										ditambahkan, {batchResult.skipped} dilewati.
+								<div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs">
+									<p className="font-semibold">
+										✅ Selesai: {batchResult.added} mahasiswa ditambahkan,{" "}
+										{batchResult.skipped} dilewati.
 									</p>
 									{batchResult.errors.length > 0 && (
 										<ul className="mt-1 list-disc list-inside text-slate-600">
@@ -572,7 +616,7 @@ function AdminStudentsPage() {
 								<button
 									type="button"
 									onClick={() => setIsBatchModalOpen(false)}
-									className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+									className="px-3.5 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
 								>
 									Tutup
 								</button>
@@ -580,7 +624,7 @@ function AdminStudentsPage() {
 									type="button"
 									onClick={handleProcessBatch}
 									disabled={batchAddMutation.isPending || !batchText.trim()}
-									className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer disabled:opacity-50"
+									className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer disabled:opacity-50"
 								>
 									{batchAddMutation.isPending ? "Mengimpor..." : "Mulai Import"}
 								</button>
@@ -589,6 +633,12 @@ function AdminStudentsPage() {
 					</div>
 				</div>
 			)}
+
+			<StudentDetailModal
+				isOpen={!!inspectedStudent}
+				onClose={() => setInspectedStudent(null)}
+				student={inspectedStudent}
+			/>
 		</div>
 	);
 }

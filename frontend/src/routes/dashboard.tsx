@@ -7,14 +7,16 @@ import {
 	Compass,
 	ExternalLink,
 	Flame,
-	PlusCircle,
+	MessageSquare,
 	Sparkles,
 	Timer,
 } from "lucide-react";
 import React, { useState } from "react";
+import { EmptyState } from "../components/common/EmptyState.js";
 import { HabitBadge } from "../components/common/HabitBadge.js";
 import { ProgressBar } from "../components/common/ProgressBar.js";
 import { SprintModal } from "../components/common/SprintModal.js";
+import { StatCard } from "../components/common/StatCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import type { StudentDashboardData } from "../types/index.js";
@@ -25,10 +27,9 @@ export const Route = createFileRoute("/dashboard")({
 
 function StudentDashboard() {
 	const navigate = useNavigate();
-	const { isAuthenticated } = useAuthStore();
+	const { user, isAuthenticated } = useAuthStore();
 	const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
 
-	// Redirect to login if not authenticated
 	React.useEffect(() => {
 		if (!isAuthenticated) {
 			navigate({ to: "/" });
@@ -46,15 +47,19 @@ function StudentDashboard() {
 
 	if (isLoading) {
 		return (
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-				<div className="animate-pulse space-y-6">
-					<div className="h-32 bg-slate-200 rounded-2xl w-full" />
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<div className="h-28 bg-slate-200 rounded-xl" />
-						<div className="h-28 bg-slate-200 rounded-xl" />
-						<div className="h-28 bg-slate-200 rounded-xl" />
-					</div>
-					<div className="h-64 bg-slate-200 rounded-2xl" />
+			<div className="space-y-6">
+				<div className="h-28 bg-white border border-slate-200 rounded-xl animate-pulse" />
+				<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+					{[1, 2, 3, 4].map((i) => (
+						<div
+							key={i}
+							className="h-24 bg-white border border-slate-200 rounded-xl animate-pulse"
+						/>
+					))}
+				</div>
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+					<div className="lg:col-span-2 h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
+					<div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
 				</div>
 			</div>
 		);
@@ -62,291 +67,258 @@ function StudentDashboard() {
 
 	if (error || !data) {
 		return (
-			<div className="max-w-7xl mx-auto px-4 py-12 text-center">
-				<p className="text-sm text-rose-600">Gagal memuat data dashboard.</p>
+			<div className="py-12 text-center">
+				<p className="text-xs text-rose-600">Gagal memuat data dashboard.</p>
 			</div>
 		);
 	}
 
+	const firstName = user?.name ? user.name.split(" ")[0] : "Mahasiswa";
+
 	return (
-		<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-			{/* 1. Hero: SAYA HARUS BELAJAR APA? (PRD §17.1) */}
-			<div className="relative overflow-hidden bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl">
-				<div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-					<div className="max-w-2xl">
-						<div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 mb-3">
-							<Calendar size={13} />
-							<span>
-								FOKUS MINGGU INI — MINGGU {data.currentWeek.weekNumber}
-							</span>
-						</div>
-						<h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-							{data.currentWeek.title}
-						</h1>
-						<p className="mt-2 text-xs sm:text-sm text-indigo-100/80 leading-relaxed">
-							{data.currentWeek.description}
-						</p>
+		<div className="space-y-6">
+			{/* 1. Above-The-Fold: Focus & Next Action Header */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+				<div className="space-y-1.5 max-w-2xl">
+					<div className="flex items-center gap-2 text-xs text-slate-500">
+						<span className="font-semibold text-slate-900">
+							Halo, {firstName}
+						</span>
+						<span>•</span>
+						<span className="inline-flex items-center gap-1 font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">
+							<Calendar size={12} />
+							<span>Minggu {data.currentWeek.weekNumber} dari 8</span>
+						</span>
 					</div>
 
-					<div className="flex flex-col sm:flex-row gap-3">
-						<button
-							onClick={() => setIsSprintModalOpen(true)}
-							className="px-5 py-3 rounded-xl bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-bold shadow-lg inline-flex items-center justify-center gap-2 transition-all hover:scale-105 cursor-pointer"
-						>
-							<Timer size={16} className="text-indigo-600" />
-							<span>Mulai 25-Min Sprint</span>
-						</button>
-						<Link
-							to="/roadmap"
-							className="px-4 py-3 rounded-xl bg-indigo-700/50 hover:bg-indigo-700 text-white text-xs font-semibold border border-indigo-500/40 inline-flex items-center justify-center gap-1.5 transition-all"
-						>
-							<span>Buka Roadmap</span>
-							<ArrowRight size={14} />
-						</Link>
-					</div>
+					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
+						Fokus: {data.currentWeek.title}
+					</h2>
+
+					<p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+						{data.currentWeek.description}
+					</p>
+				</div>
+
+				<div className="flex items-center gap-2.5 shrink-0">
+					<button
+						type="button"
+						onClick={() => setIsSprintModalOpen(true)}
+						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+					>
+						<Timer size={15} />
+						<span>Mulai 25-Min Sprint</span>
+					</button>
+
+					<Link
+						to="/roadmap"
+						className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition-colors"
+					>
+						<span>Buka Silabus</span>
+						<ArrowRight size={13} className="text-slate-400" />
+					</Link>
 				</div>
 			</div>
 
-			{/* KPI Cards: Habit & Activity Tracker */}
+			{/* 2. KPI Stat Cards (4-Grid) */}
 			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-				<div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Progres Self-Assessment
-						</span>
-						<CheckCircle2 size={18} className="text-emerald-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.summary.overallPercentage}%
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						{data.summary.completedChecklists} dari{" "}
-						{data.summary.totalChecklists} poin dikuasai mandiri
-					</span>
-				</div>
-
-				<div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Habit ≥25 Menit
-						</span>
-						<Flame size={18} className="text-amber-500" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.summary.habitReachedCount}x
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						Target kebiasaan fokus tercapai
-					</span>
-				</div>
-
-				<div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Total Waktu Belajar
-						</span>
-						<Timer size={18} className="text-indigo-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.summary.totalMinutesLearned}{" "}
-						<span className="text-sm font-normal text-slate-500">menit</span>
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						Dari total {data.summary.totalSprints} sesi sprint
-					</span>
-				</div>
-
-				<div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Aktivitas Minggu Ini
-						</span>
-						<Sparkles size={18} className="text-sky-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.summary.sprintsThisWeek}{" "}
-						<span className="text-sm font-normal text-slate-500">sprint</span>
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						7 hari terakhir
-					</span>
-				</div>
+				<StatCard
+					label="Progres Self-Assessment"
+					value={`${data.summary.overallPercentage}%`}
+					subtext={`${data.summary.completedChecklists} dari ${data.summary.totalChecklists} poin mandiri`}
+					icon={CheckCircle2}
+					iconColor="text-emerald-600"
+				/>
+				<StatCard
+					label="Target Kebiasaan (≥25m)"
+					value={`${data.summary.habitReachedCount}x`}
+					subtext="Sesi belajar fokus tercapai"
+					icon={Flame}
+					iconColor="text-amber-500"
+				/>
+				<StatCard
+					label="Total Waktu Belajar"
+					value={`${data.summary.totalDurationMinutes}m`}
+					subtext={`Dari ${data.summary.totalSprints} sesi sprint`}
+					icon={Timer}
+					iconColor="text-blue-600"
+				/>
+				<StatCard
+					label="Aktivitas Minggu Ini"
+					value={`${data.summary.weeklySprintsCount} sprint`}
+					subtext="7 hari terakhir"
+					icon={Compass}
+					iconColor="text-slate-500"
+				/>
 			</div>
 
-			{/* 2 & 3: SAYA SUDAH SAMPAI MANA & APA LANGKAH SELANJUTNYA? (PRD §17.2 & §17.3) */}
+			{/* 3. Main Split Section: Category Progress & Next Step */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Left 2 Cols: Self-Assessed Progress per Category */}
-				<div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+				{/* Left (2 Cols): Module & Category Progress */}
+				<div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+					<div className="flex items-center justify-between pb-3 border-b border-slate-100">
 						<div>
-							<h2 className="text-base font-bold text-slate-900">
-								Self-Assessed Learning Progress
-							</h2>
-							<p className="text-xs text-slate-500">
-								Berdasarkan checklist mandiri yang telah Anda tandai.
+							<h3 className="text-sm font-semibold text-slate-900">
+								Penguasaan Silabus Mandiri
+							</h3>
+							<p className="text-xs text-slate-500 mt-0.5">
+								Berdasarkan checklist mandiri yang telah Anda tandai
 							</p>
 						</div>
 						<Link
 							to="/roadmap"
-							className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+							className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
 						>
-							Update Checklist →
+							Update Status →
 						</Link>
 					</div>
 
-					<div className="space-y-4">
-						{data.categoryProgress.map((cat) => {
-							const colorMap: any = {
-								HTML: "indigo",
-								CSS: "sky",
-								JAVASCRIPT: "amber",
-								BACKEND: "emerald",
-								FULLSTACK: "purple",
-							};
-							return (
-								<div
-									key={cat.category}
-									className="p-3 bg-slate-50/60 rounded-xl border border-slate-100"
-								>
-									<div className="flex justify-between items-center mb-1 text-xs">
-										<span className="font-bold text-slate-800 font-mono">
-											{cat.category}
-										</span>
-										<span className="text-slate-600 font-medium">
-											{cat.independent}/{cat.total} Mandiri ({cat.percentage}%)
-										</span>
-									</div>
-									<ProgressBar
-										percentage={cat.percentage}
-										color={colorMap[cat.category] || "indigo"}
-									/>
+					<div className="space-y-3.5 pt-1">
+						{data.categoryProgress.map((cat) => (
+							<div key={cat.category} className="space-y-1.5">
+								<div className="flex items-center justify-between text-xs">
+									<span className="font-medium text-slate-800">
+										{cat.category}
+									</span>
+									<span className="font-mono text-slate-500">
+										{cat.independent}/{cat.total} Mandiri ({cat.percentage}%)
+									</span>
 								</div>
-							);
-						})}
+								<ProgressBar percentage={cat.percentage} height="md" />
+							</div>
+						))}
 					</div>
 				</div>
 
-				{/* Right Col: APA YANG HARUS SAYA LAKUKAN SELANJUTNYA? */}
-				<div className="bg-gradient-to-br from-indigo-50/80 via-white to-slate-50 p-6 rounded-2xl border border-indigo-100/80 shadow-xs flex flex-col justify-between">
+				{/* Right (1 Col): Actionable Next Step Box */}
+				<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
 					<div>
-						<div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 mb-3">
-							<Compass size={20} />
+						<div className="flex items-center gap-2 mb-3">
+							<div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+								<Sparkles size={14} />
+							</div>
+							<h3 className="text-sm font-semibold text-slate-900">
+								Langkah Rekomendasi
+							</h3>
 						</div>
-						<h3 className="text-base font-bold text-slate-900 leading-tight">
-							Langkah Selanjutnya
-						</h3>
-						<p className="text-xs text-slate-500 mt-1">
-							Rekomendasi target untuk sprint belajar Anda berikutnya:
+
+						<p className="text-xs text-slate-500 leading-relaxed mb-3">
+							Target terdekat untuk sprint belajar Anda berikutnya:
 						</p>
 
-						<div className="my-4 p-3.5 bg-white rounded-xl border border-indigo-100 shadow-xs">
-							<span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block mb-1">
+						<div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+							<span className="text-[10px] font-mono uppercase tracking-wider text-blue-600 font-semibold block">
 								Topik Rekomendasi
 							</span>
-							<p className="text-xs font-semibold text-slate-800 leading-relaxed">
+							<p className="text-xs font-semibold text-slate-800 leading-snug">
 								{data.nextAction.suggestedFocus}
 							</p>
 						</div>
-
-						<div className="text-xs text-slate-600 flex items-center gap-2">
-							<Timer size={14} className="text-amber-600 shrink-0" />
-							<span>
-								Target minimal: <strong>25 menit</strong> belajar fokus
-							</span>
-						</div>
 					</div>
 
-					<div className="mt-6 pt-4 border-t border-slate-100">
-						<button
-							onClick={() => setIsSprintModalOpen(true)}
-							className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-200 inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
-						>
-							<PlusCircle size={15} />
-							<span>Catat Sprint Sekarang</span>
-						</button>
-					</div>
+					<button
+						type="button"
+						onClick={() => setIsSprintModalOpen(true)}
+						className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+					>
+						<Timer size={14} />
+						<span>Catat Sprint Sekarang</span>
+					</button>
 				</div>
 			</div>
 
-			{/* Recent Sprints Table / Feed */}
-			<div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-				<div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+			{/* 4. Recent Activity Timeline */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+				<div className="flex items-center justify-between pb-3 border-b border-slate-100">
 					<div>
-						<h2 className="text-base font-bold text-slate-900">
+						<h3 className="text-sm font-semibold text-slate-900">
 							Riwayat Sprint Terakhir Anda
-						</h2>
-						<p className="text-xs text-slate-500">
-							Catatan refleksi apa yang dipelajari dan dipraktekkan.
+						</h3>
+						<p className="text-xs text-slate-500 mt-0.5">
+							Catatan refleksi apa yang dipelajari dan dipraktekkan
 						</p>
 					</div>
 					<Link
 						to="/sprints"
-						className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+						className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
 					>
-						Lihat Semua Sprint ({data.summary.totalSprints}) →
+						Lihat Semua Sprint ({data.recentSprints?.length || 0}) →
 					</Link>
 				</div>
 
-				{data.recentSprints.length === 0 ? (
-					<div className="text-center py-10">
-						<Timer size={32} className="mx-auto text-slate-300 mb-2" />
-						<p className="text-xs font-semibold text-slate-600">
-							Belum ada catatan sprint.
-						</p>
-						<p className="text-[11px] text-slate-400 mt-0.5">
-							Mulai belajar minimal 25 menit dan catat refleksi pertama Anda.
-						</p>
-					</div>
-				) : (
-					<div className="space-y-3">
+				{data.recentSprints && data.recentSprints.length > 0 ? (
+					<div className="space-y-3 pt-1">
 						{data.recentSprints.map((sprint) => (
 							<div
 								key={sprint.id}
-								className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-100 flex flex-col sm:flex-row justify-between gap-3 text-xs"
+								className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 transition-colors text-xs space-y-2"
 							>
-								<div className="space-y-1 max-w-2xl">
+								<div className="flex items-center justify-between gap-2">
 									<div className="flex items-center gap-2">
-										<span className="font-bold text-slate-800">
-											{sprint.topic?.title || "Umum"}
+										<span className="font-semibold text-slate-900">
+											{sprint.topic?.title || "Sesi Mandiri"}
 										</span>
-										<HabitBadge durationMinutes={sprint.durationMinutes} />
+										{sprint.topic?.category && (
+											<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-xs font-mono">
+												{sprint.topic.category}
+											</span>
+										)}
 									</div>
-									<p className="text-slate-600">
-										<strong className="text-slate-700">Dipelajari:</strong>{" "}
+									<HabitBadge durationMinutes={sprint.durationMinutes} />
+								</div>
+
+								<div className="space-y-1 text-slate-600">
+									<p>
+										<strong className="text-slate-700">Pelajari:</strong>{" "}
 										{sprint.whatLearned}
 									</p>
-									<p className="text-slate-600">
-										<strong className="text-slate-700">Dipraktekkan:</strong>{" "}
+									<p>
+										<strong className="text-slate-700">Praktek:</strong>{" "}
 										{sprint.whatPracticed}
 									</p>
 								</div>
 
-								<div className="flex sm:flex-col justify-between items-end sm:items-end gap-1 text-[11px] text-slate-400 shrink-0">
-									<span>
+								<div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[11px]">
+									<span className="text-slate-400">
 										{new Date(sprint.createdAt).toLocaleDateString("id-ID", {
 											day: "numeric",
 											month: "short",
+											year: "numeric",
 										})}
 									</span>
-									{sprint.evidenceUrl && (
-										<a
-											href={sprint.evidenceUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="inline-flex items-center gap-1 text-indigo-600 hover:underline font-semibold"
-										>
-											<span>Bukti</span>
-											<ExternalLink size={11} />
-										</a>
-									)}
+
+									<div className="flex items-center gap-3">
+										{sprint.evidenceUrl && (
+											<a
+												href={sprint.evidenceUrl}
+												target="_blank"
+												rel="noreferrer"
+												className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline"
+											>
+												<span>Evidence ({sprint.evidenceType})</span>
+												<ExternalLink size={10} />
+											</a>
+										)}
+										<span className="text-slate-500 inline-flex items-center gap-1">
+											<MessageSquare size={11} />
+											<span>{sprint.feedbacks?.length || 0} feedback</span>
+										</span>
+									</div>
 								</div>
 							</div>
 						))}
 					</div>
+				) : (
+					<EmptyState
+						icon={Timer}
+						title="Belum ada catatan sprint"
+						description="Mulai belajar minimal 25 menit dan catat refleksi pertama Anda untuk memantau konsistensi."
+						actionLabel="Mulai Sesi Belajar Pertama"
+						onAction={() => setIsSprintModalOpen(true)}
+					/>
 				)}
 			</div>
 
-			{/* Sprint Modal */}
 			<SprintModal
 				isOpen={isSprintModalOpen}
 				onClose={() => setIsSprintModalOpen(false)}

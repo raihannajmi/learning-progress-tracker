@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Filter, MessageSquare, Users } from "lucide-react";
+import { Filter, MessageSquare } from "lucide-react";
 import React, { useState } from "react";
+import { EmptyState } from "../components/common/EmptyState.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
@@ -54,30 +55,37 @@ function ClassFeedPage() {
 		classesList?.find((c) => c.id === selectedClassId)?.name || "Semua Kelas";
 
 	return (
-		<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-			{/* Header with Class Selector */}
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-				<div>
-					<div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200 mb-2">
-						<Users size={13} />
-						<span>Peer Learning & Social Accountability</span>
+		<div className="space-y-6">
+			{/* 1. Header with Class Selector */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div className="space-y-1">
+					<div className="flex items-center gap-2">
+						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+							Komunitas Kelas
+						</span>
+						<span className="text-slate-300">•</span>
+						<span className="text-xs font-medium text-slate-600">
+							Social Accountability
+						</span>
 					</div>
-					<h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-						Feed Aktivitas Kelas
-					</h1>
-					<p className="text-xs text-slate-500 mt-1 max-w-lg">
+
+					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
+						Feed Progres & Peer Feedback
+					</h2>
+
+					<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
 						Lihat apa yang sedang dipelajari teman sekelas, eksplorasi bukti
 						pekerjaan, dan berikan feedback konstruktif.
 					</p>
 				</div>
 
 				{/* Class Filter Dropdown */}
-				<div className="flex items-center gap-2 shrink-0 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-					<Filter size={14} className="text-slate-400 ml-1" />
+				<div className="flex items-center gap-2 shrink-0 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+					<Filter size={14} className="text-slate-400" />
 					<select
 						value={selectedClassId}
 						onChange={(e) => setSelectedClassId(e.target.value)}
-						className="text-xs font-semibold text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
+						className="text-xs font-medium text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
 					>
 						<option value="">Semua Kelas</option>
 						{classesList?.map((cls) => (
@@ -89,27 +97,23 @@ function ClassFeedPage() {
 				</div>
 			</div>
 
-			{/* Sprints Stream */}
+			{/* 2. Sprints Feed Stream */}
 			<div className="space-y-4">
 				{isLoading ? (
-					<div className="space-y-4 animate-pulse">
-						<div className="h-36 bg-slate-200 rounded-xl" />
-						<div className="h-36 bg-slate-200 rounded-xl" />
+					<div className="space-y-4">
+						<div className="h-36 bg-white border border-slate-200 rounded-xl animate-pulse" />
+						<div className="h-36 bg-white border border-slate-200 rounded-xl animate-pulse" />
 					</div>
 				) : sprints && sprints.length > 0 ? (
 					sprints.map((sprint) => (
 						<PeerFeedbackCard key={sprint.id} sprint={sprint} />
 					))
 				) : (
-					<div className="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-xs">
-						<MessageSquare size={36} className="mx-auto text-slate-300 mb-2" />
-						<h3 className="text-sm font-bold text-slate-800">
-							Belum ada aktivitas di {activeClassName}
-						</h3>
-						<p className="text-xs text-slate-500 mt-1">
-							Aktivitas sprint teman sekelas Anda akan muncul di feed ini.
-						</p>
-					</div>
+					<EmptyState
+						icon={MessageSquare}
+						title={`Belum ada aktivitas di ${activeClassName}`}
+						description="Aktivitas sprint dan refleksi belajar teman sekelas Anda akan muncul secara live di feed ini."
+					/>
 				)}
 			</div>
 		</div>

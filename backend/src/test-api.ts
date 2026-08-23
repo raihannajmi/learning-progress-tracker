@@ -4,6 +4,7 @@ import { ChecklistService } from './services/checklistService.js';
 import { SprintService } from './services/sprintService.js';
 import { DashboardService } from './services/dashboardService.js';
 import { AdminStudentService } from './services/adminStudentService.js';
+import { RoadmapAdminService } from './services/roadmapAdminService.js';
 import { ClassService } from './services/classService.js';
 import { queryClient } from './db/index.js';
 
@@ -26,12 +27,12 @@ async function runTests() {
 
     // 2. Whitelisted Student login
     console.log('2️⃣ Testing Whitelisted Student Login...');
-    const studentAuth = await AuthService.verifyGoogleLogin('dev-mock:andi@student.univ.ac.id');
+    const studentAuth = await AuthService.verifyGoogleLogin('dev-mock:muhammadzahi006@students.unnes.ac.id');
     console.log(`   ✅ PASS: Student logged in. Name: ${studentAuth.user.name}, Role: ${studentAuth.user.role}, Token length: ${studentAuth.token.length}`);
 
     // 3. Whitelisted Admin login
     console.log('3️⃣ Testing Whitelisted Admin Login...');
-    const adminAuth = await AuthService.verifyGoogleLogin('dev-mock:dosen@univ.ac.id');
+    const adminAuth = await AuthService.verifyGoogleLogin('dev-mock:najmiraihanworks@gmail.com');
     console.log(`   ✅ PASS: Admin logged in. Name: ${adminAuth.user.name}, Role: ${adminAuth.user.role}`);
 
     // 4. Roadmap & Checklist self-assessment
@@ -96,7 +97,35 @@ async function runTests() {
     const newStudentLogin = await AuthService.verifyGoogleLogin(`dev-mock:${newStudentEmail}`);
     console.log(`   ✅ PASS: Newly whitelisted student logged in successfully with user ID: ${newStudentLogin.user.id}`);
 
-    console.log('\n🎉 ALL 9 BACKEND VERIFICATION CHECKS PASSED WITH 100% SUCCESS!\n');
+    // 10. Admin Roadmap & Checklist CRUD
+    console.log('🔟 Testing Admin Roadmap & Checklist Management (CRUD)...');
+    const createdWeek = await RoadmapAdminService.createWeek({
+      weekNumber: 99,
+      title: 'Week 99: Fullstack Deployment & CI/CD',
+      description: 'Testing dynamic syllabus creation by Admin',
+    });
+    console.log(`   ✅ PASS: Admin created syllabus week: ${createdWeek.title}`);
+
+    const createdTopic = await RoadmapAdminService.createTopic({
+      weekId: createdWeek.id,
+      title: 'Dockerizing Express & Postgres',
+      category: 'BACKEND',
+      sortOrder: 1,
+    });
+    console.log(`   ✅ PASS: Admin created topic: ${createdTopic.title} (${createdTopic.category})`);
+
+    const createdChecklist = await RoadmapAdminService.createChecklist({
+      topicId: createdTopic.id,
+      statement: 'Saya dapat menulis Dockerfile multi-stage build untuk aplikasi Node.js',
+      sortOrder: 1,
+    });
+    console.log(`   ✅ PASS: Admin created checklist item: "${createdChecklist.statement}"`);
+
+    // Clean up test week & cascade
+    await RoadmapAdminService.deleteWeek(createdWeek.id);
+    console.log('   ✅ PASS: Admin successfully cleaned up test syllabus week & cascaded topics/checklists.');
+
+    console.log('\n🎉 ALL 10 BACKEND VERIFICATION CHECKS PASSED WITH 100% SUCCESS!\n');
   } catch (error) {
     console.error('❌ Verification check failed:', error);
     process.exit(1);

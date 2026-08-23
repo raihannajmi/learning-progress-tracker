@@ -1,38 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import {
-	BookOpen,
-	Code2,
-	ExternalLink,
-	Globe,
-	HelpCircle,
-	MessageSquare,
-	Palette,
-	Send,
-	Video,
-} from "lucide-react";
+import { ExternalLink, Flame, MessageSquare, Send } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
-import * as Yup from "yup";
 import { api } from "../../lib/api.js";
 import type { LearningSprint } from "../../types/index.js";
-import { HabitBadge } from "./HabitBadge.js";
 
 interface Props {
 	sprint: LearningSprint;
 }
 
-const FeedbackSchema = Yup.object().shape({
-	comment: Yup.string()
-		.required("Tulis feedback yang konstruktif")
-		.min(3, "Minimal 3 karakter"),
-});
-
 export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 	const queryClient = useQueryClient();
-	const [showCommentForm, setShowCommentForm] = useState(false);
+	const [commentText, setCommentText] = useState("");
+	const [isReplying, setIsReplying] = useState(false);
 
-	const mutation = useMutation({
+	const addFeedbackMutation = useMutation({
 		mutationFn: async (comment: string) => {
 			const res: any = await api.post(`/sprints/${sprint.id}/feedbacks`, {
 				comment,
@@ -41,53 +23,47 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["sprints"] });
-			setShowCommentForm(false);
+			setCommentText("");
+			setIsReplying(false);
 		},
 	});
 
-	const getEvidenceIcon = (type: string) => {
-		switch (type) {
-			case "GITHUB":
-				return <Code2 size={13} />;
-			case "GITHUB_PAGES":
-			case "LIVE_DEMO":
-				return <Globe size={13} />;
-			case "LOOM":
-				return <Video size={13} />;
-			case "FIGMA":
-				return <Palette size={13} />;
-			default:
-				return <ExternalLink size={13} />;
-		}
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!commentText.trim()) return;
+		addFeedbackMutation.mutate(commentText);
 	};
 
+	const isHabit = sprint.durationMinutes >= 25;
+
 	return (
-		<div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs hover:border-slate-300 transition-all">
-			{/* Author Header */}
-			<div className="flex justify-between items-start mb-3">
-				<div className="flex items-center gap-2.5">
-					<img
-						src={
-							sprint.user?.avatarUrl ||
-							`https://ui-avatars.com/api/?name=${encodeURIComponent(
-								sprint.user?.name || "Student",
-							)}&background=6366f1&color=fff`
-						}
-						alt={sprint.user?.name}
-						className="w-9 h-9 rounded-full ring-2 ring-slate-100 object-cover"
-					/>
-					<div>
-						<div className="flex items-center gap-2">
-							<span className="text-xs font-bold text-slate-900">
-								{sprint.user?.name}
+		<div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
+			{/* Student Author Header */}
+			<div className="flex items-center justify-between gap-3">
+				<div className="flex items-center gap-3 min-w-0">
+					<div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-semibold text-xs text-slate-700 shrink-0">
+						{sprint.user.avatarUrl ? (
+							<img
+								src={sprint.user.avatarUrl}
+								alt={sprint.user.name}
+								className="w-full h-full object-cover rounded-lg"
+							/>
+						) : (
+							sprint.user.name.charAt(0).toUpperCase()
+						)}
+					</div>
+					<div className="min-w-0">
+						<div className="flex items-center gap-2 flex-wrap">
+							<span className="text-xs font-semibold text-slate-900 truncate">
+								{sprint.user.name}
 							</span>
-							{sprint.user?.className && (
-								<span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-sm">
+							{sprint.user.className && (
+								<span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-sm">
 									{sprint.user.className}
 								</span>
 							)}
 						</div>
-						<span className="text-[11px] text-slate-400">
+						<span className="text-[11px] text-slate-400 font-normal">
 							{new Date(sprint.createdAt).toLocaleDateString("id-ID", {
 								day: "numeric",
 								month: "short",
@@ -98,104 +74,91 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 					</div>
 				</div>
 
-				<div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
-					{sprint.topic && (
-						<span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-							{sprint.topic.title}
+				<div className="flex items-center gap-2 shrink-0">
+					{isHabit && (
+						<span className="inline-flex items-center gap-1 text-[11px] font-medium font-mono rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5">
+							<Flame size={12} className="text-amber-500" />
+							<span>{sprint.durationMinutes}m</span>
 						</span>
 					)}
-					<HabitBadge durationMinutes={sprint.durationMinutes} />
 				</div>
 			</div>
 
-			{/* Content */}
-			<div className="space-y-2.5 my-3 text-xs">
-				<div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
-					<span className="font-semibold text-slate-700 flex items-center gap-1.5 mb-1">
-						<BookOpen size={13} className="text-indigo-600" />
-						Yang Dipelajari:
-					</span>
-					<p className="text-slate-600 leading-relaxed">{sprint.whatLearned}</p>
+			{/* Topic Title if attached */}
+			{sprint.topic && (
+				<div className="text-xs font-medium text-blue-600 bg-blue-50/70 border border-blue-100 px-2.5 py-1 rounded-md w-fit">
+					Topik: {sprint.topic.title}
 				</div>
+			)}
 
-				<div className="bg-emerald-50/40 p-2.5 rounded-lg border border-emerald-100/60">
-					<span className="font-semibold text-emerald-800 flex items-center gap-1.5 mb-1">
-						<Code2 size={13} className="text-emerald-600" />
-						Yang Dipraktekkan:
+			{/* Reflection Content */}
+			<div className="space-y-2 text-xs">
+				<div>
+					<span className="font-semibold text-slate-800">Pelajari: </span>
+					<span className="text-slate-600 leading-relaxed">
+						{sprint.whatLearned}
 					</span>
-					<p className="text-slate-600 leading-relaxed">
+				</div>
+				<div>
+					<span className="font-semibold text-slate-800">Praktek: </span>
+					<span className="text-slate-600 leading-relaxed">
 						{sprint.whatPracticed}
-					</p>
+					</span>
 				</div>
-
 				{sprint.confusingParts && (
-					<div className="bg-amber-50/40 p-2.5 rounded-lg border border-amber-100/60">
-						<span className="font-semibold text-amber-800 flex items-center gap-1.5 mb-1">
-							<HelpCircle size={13} className="text-amber-600" />
-							Masih Membingungkan:
-						</span>
-						<p className="text-slate-600 leading-relaxed">
-							{sprint.confusingParts}
-						</p>
+					<div className="p-2.5 bg-amber-50/60 border border-amber-200/80 rounded-lg text-amber-900 leading-relaxed">
+						<span className="font-semibold">Kendala / Pertanyaan: </span>
+						<span>{sprint.confusingParts}</span>
 					</div>
 				)}
 			</div>
 
-			{/* Evidence Button */}
+			{/* Evidence Link */}
 			{sprint.evidenceUrl && (
-				<div className="pt-2 mb-3">
+				<div className="pt-1">
 					<a
 						href={sprint.evidenceUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100/80 px-2.5 py-1 rounded-md transition-colors"
+						className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md transition-colors"
 					>
-						{getEvidenceIcon(sprint.evidenceType)}
-						<span>Lihat Bukti ({sprint.evidenceType.replace("_", " ")})</span>
-						<ExternalLink size={11} />
+						<span>Buka Bukti ({sprint.evidenceType})</span>
+						<ExternalLink size={12} className="text-slate-400" />
 					</a>
 				</div>
 			)}
 
-			{/* Peer Feedbacks Thread */}
-			<div className="mt-3 pt-3 border-t border-slate-100">
-				<div className="flex justify-between items-center mb-2">
-					<span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-						<MessageSquare size={13} />
-						Feedback Teman ({sprint.feedbacks?.length || 0})
-					</span>
+			{/* Feedback Section */}
+			<div className="pt-3 border-t border-slate-100 space-y-3">
+				<div className="flex items-center justify-between">
 					<button
 						type="button"
-						onClick={() => setShowCommentForm(!showCommentForm)}
-						className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+						onClick={() => setIsReplying(!isReplying)}
+						className="text-xs font-medium text-slate-500 hover:text-blue-600 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 					>
-						{showCommentForm ? "Tutup" : "+ Beri Feedback"}
+						<MessageSquare size={14} />
+						<span>{sprint.feedbacks?.length || 0} Peer Feedback</span>
 					</button>
 				</div>
 
-				{/* Existing Feedbacks */}
-				{sprint.feedbacks && sprint.feedbacks.length > 0 ? (
-					<div className="space-y-2 mb-2">
+				{/* Existing Comments */}
+				{sprint.feedbacks && sprint.feedbacks.length > 0 && (
+					<div className="space-y-2 pl-3 border-l-2 border-slate-100">
 						{sprint.feedbacks.map((fb) => (
-							<div
-								key={fb.id}
-								className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs"
-							>
-								<div className="flex items-center gap-1.5 mb-1">
-									<span className="font-bold text-slate-800">
+							<div key={fb.id} className="text-xs space-y-0.5">
+								<div className="flex items-center gap-1.5">
+									<span className="font-semibold text-slate-800">
 										{fb.author.name}
 									</span>
 									{fb.author.role === "ADMIN" && (
-										<span className="text-[9px] font-semibold bg-purple-100 text-purple-700 px-1.5 py-0.2 rounded-xs">
-											Dosen/TA
+										<span className="text-[9px] font-mono font-bold bg-purple-50 text-purple-700 px-1.5 py-0.2 rounded-xs border border-purple-200">
+											DOSEN/TA
 										</span>
 									)}
-									<span className="text-[10px] text-slate-400 ml-auto">
+									<span className="text-[10px] text-slate-400">
 										{new Date(fb.createdAt).toLocaleDateString("id-ID", {
 											day: "numeric",
 											month: "short",
-											hour: "2-digit",
-											minute: "2-digit",
 										})}
 									</span>
 								</div>
@@ -203,52 +166,30 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 							</div>
 						))}
 					</div>
-				) : (
-					<p className="text-[11px] text-slate-400 italic py-1">
-						Belum ada feedback. Jadilah yang pertama memberikan masukan
-						konstruktif!
-					</p>
 				)}
 
-				{/* Formik Add Feedback Form */}
-				{showCommentForm && (
-					<div className="mt-3 pt-2">
-						<Formik
-							initialValues={{ comment: "" }}
-							validationSchema={FeedbackSchema}
-							onSubmit={(values, { resetForm }) => {
-								mutation.mutate(values.comment, {
-									onSuccess: () => resetForm(),
-								});
-							}}
+				{/* Reply Input Form */}
+				{isReplying && (
+					<form
+						onSubmit={handleSubmit}
+						className="flex items-center gap-2 pt-1"
+					>
+						<input
+							type="text"
+							value={commentText}
+							onChange={(e) => setCommentText(e.target.value)}
+							placeholder="Berikan masukan konstruktif atau saran..."
+							className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+						/>
+						<button
+							type="submit"
+							disabled={addFeedbackMutation.isPending || !commentText.trim()}
+							className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1 cursor-pointer transition-colors"
 						>
-							{({ isSubmitting }) => (
-								<Form className="flex gap-2">
-									<div className="flex-1">
-										<Field
-											type="text"
-											name="comment"
-											placeholder="Tulis masukan kualitatif yang membantu..."
-											className="w-full text-xs rounded-lg border border-slate-300 p-2 focus:ring-2 focus:ring-indigo-500"
-										/>
-										<ErrorMessage
-											name="comment"
-											component="div"
-											className="text-[10px] text-rose-600 mt-0.5"
-										/>
-									</div>
-									<button
-										type="submit"
-										disabled={isSubmitting || mutation.isPending}
-										className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50 h-fit"
-									>
-										<Send size={13} />
-										<span>{mutation.isPending ? "..." : "Kirim"}</span>
-									</button>
-								</Form>
-							)}
-						</Formik>
-					</div>
+							<Send size={12} />
+							<span>Kirim</span>
+						</button>
+					</form>
 				)}
 			</div>
 		</div>

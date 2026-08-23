@@ -1,26 +1,41 @@
-import { Target, Timer } from "lucide-react";
+import { Flame } from "lucide-react";
 import type React from "react";
 
 interface Props {
 	durationMinutes: number;
+	size?: "sm" | "md";
 }
 
-export const HabitBadge: React.FC<Props> = ({ durationMinutes }) => {
-	const isReached = durationMinutes >= 25;
+export const HabitBadge: React.FC<Props> = ({
+	durationMinutes,
+	size = "sm",
+}) => {
+	const isHabitQualified = durationMinutes >= 25;
 
-	if (isReached) {
+	if (isHabitQualified) {
 		return (
-			<span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-				<Target size={13} className="text-emerald-600" />
-				<span>≥25m Habit Target Reached ({durationMinutes}m)</span>
+			<span
+				className={`inline-flex items-center gap-1 font-medium font-mono rounded-full bg-amber-50 text-amber-700 border border-amber-200 ${
+					size === "sm" ? "text-[11px] px-2.5 py-0.5" : "text-xs px-3 py-1"
+				}`}
+				title="Sesi mencapai target kebiasaan minimal 25 menit"
+			>
+				<Flame
+					size={size === "sm" ? 12 : 14}
+					className="text-amber-500 shrink-0"
+				/>
+				<span>{durationMinutes}m (Habit)</span>
 			</span>
 		);
 	}
 
 	return (
-		<span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200">
-			<Timer size={13} className="text-amber-600" />
-			<span>{durationMinutes}m (&lt;25m target)</span>
+		<span
+			className={`inline-flex items-center gap-1 font-medium font-mono rounded-full bg-slate-100 text-slate-600 border border-slate-200 ${
+				size === "sm" ? "text-[11px] px-2.5 py-0.5" : "text-xs px-3 py-1"
+			}`}
+		>
+			<span>{durationMinutes}m</span>
 		</span>
 	);
 };

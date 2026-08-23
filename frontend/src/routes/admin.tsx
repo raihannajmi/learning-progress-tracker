@@ -3,14 +3,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircle,
 	ExternalLink,
+	Eye,
 	Filter,
-	HelpCircle,
 	MessageSquare,
-	ShieldCheck,
 	Timer,
 	Users,
 } from "lucide-react";
 import React, { useState } from "react";
+import { StatCard } from "../components/common/StatCard.js";
+import { StudentDetailModal } from "../components/common/StudentDetailModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import type { AdminDashboardData, ClassGroup } from "../types/index.js";
@@ -23,6 +24,7 @@ function AdminDashboardPage() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
 	const [selectedClassId, setSelectedClassId] = useState<string>("");
+	const [inspectedStudent, setInspectedStudent] = useState<any | null>(null);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -53,19 +55,19 @@ function AdminDashboardPage() {
 
 	if (isLoading) {
 		return (
-			<div className="max-w-7xl mx-auto px-4 py-10">
-				<div className="animate-pulse space-y-6">
-					<div className="h-28 bg-slate-200 rounded-2xl" />
-					<div className="grid grid-cols-4 gap-4">
-						<div className="h-24 bg-slate-200 rounded-xl" />
-						<div className="h-24 bg-slate-200 rounded-xl" />
-						<div className="h-24 bg-slate-200 rounded-xl" />
-						<div className="h-24 bg-slate-200 rounded-xl" />
-					</div>
-					<div className="grid grid-cols-2 gap-6">
-						<div className="h-64 bg-slate-200 rounded-2xl" />
-						<div className="h-64 bg-slate-200 rounded-2xl" />
-					</div>
+			<div className="space-y-6">
+				<div className="h-24 bg-white border border-slate-200 rounded-xl animate-pulse" />
+				<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+					{[1, 2, 3, 4].map((i) => (
+						<div
+							key={i}
+							className="h-24 bg-white border border-slate-200 rounded-xl animate-pulse"
+						/>
+					))}
+				</div>
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+					<div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
+					<div className="h-64 bg-white border border-slate-200 rounded-xl animate-pulse" />
 				</div>
 			</div>
 		);
@@ -73,30 +75,44 @@ function AdminDashboardPage() {
 
 	if (!data) return null;
 
+	const activePercent =
+		data.totalStudents > 0
+			? Math.round((data.activeStudentsThisWeek / data.totalStudents) * 100)
+			: 0;
+
 	return (
-		<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-			{/* Header Banner */}
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl">
-				<div>
-					<div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/30 text-purple-200 border border-purple-400/30 mb-2">
-						<ShieldCheck size={14} />
-						<span>Dashboard Monitoring Asisten Dosen & Dosen</span>
+		<div className="space-y-6">
+			{/* 1. Header with Class Selector */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div className="space-y-1">
+					<div className="flex items-center gap-2">
+						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+							Area Pengajar
+						</span>
+						<span className="text-slate-300">•</span>
+						<span className="text-xs font-medium text-slate-600">
+							Monitoring & Asistensi
+						</span>
 					</div>
-					<h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-						Class Monitoring & Confusion Analytics
-					</h1>
-					<p className="text-xs sm:text-sm text-purple-100/80 mt-1 max-w-xl">
-						Identifikasi pola kebingungan kelas dan pantau konsistensi belajar
-						tanpa harus memeriksa 90 mahasiswa satu per satu secara manual.
+
+					<h2 className="text-lg font-semibold text-slate-900 tracking-tight">
+						Dashboard Monitoring Dosen & TA
+					</h2>
+
+					<p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+						Identifikasi pola kebingungan materi kelas dan pantau keaktifan
+						belajar mahasiswa tanpa harus memeriksa puluhan mahasiswa secara
+						manual.
 					</p>
 				</div>
 
-				<div className="flex items-center gap-2 bg-white/10 backdrop-blur-md p-1.5 rounded-xl border border-white/20">
-					<Filter size={14} className="text-purple-200 ml-2" />
+				{/* Class Filter Selector */}
+				<div className="flex items-center gap-2 shrink-0 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+					<Filter size={14} className="text-slate-400" />
 					<select
 						value={selectedClassId}
 						onChange={(e) => setSelectedClassId(e.target.value)}
-						className="text-xs font-bold text-white bg-transparent border-0 focus:ring-0 cursor-pointer pr-4 [&>option]:text-slate-900"
+						className="text-xs font-medium text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
 					>
 						<option value="">Semua Kelas (2 Kelas)</option>
 						{classesList?.map((cls) => (
@@ -108,156 +124,124 @@ function AdminDashboardPage() {
 				</div>
 			</div>
 
-			{/* KPI Cards (PRD §20) */}
+			{/* 2. KPI Metrics Grid */}
 			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-				<div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Mahasiswa Aktif Minggu Ini
-						</span>
-						<Users size={18} className="text-indigo-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.activeStudentsThisWeek} / {data.totalStudents}
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						{data.totalStudents > 0
-							? `${Math.round((data.activeStudentsThisWeek / data.totalStudents) * 100)}% aktif belajar minggu ini`
-							: "Belum ada mahasiswa"}
-					</span>
-				</div>
-
-				<div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Total Learning Sprints
-						</span>
-						<Timer size={18} className="text-emerald-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.totalSprints}
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						Sesi sprint tercatat
-					</span>
-				</div>
-
-				<div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Peer Feedback Diberikan
-						</span>
-						<MessageSquare size={18} className="text-sky-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-						{data.totalFeedbackGiven}
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						Saling memberi masukan
-					</span>
-				</div>
-
-				<div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-2">
-						<span className="text-xs font-semibold text-slate-500">
-							Perlu Perhatian (Pasif)
-						</span>
-						<AlertCircle size={18} className="text-amber-600" />
-					</div>
-					<div className="text-2xl sm:text-3xl font-bold text-amber-600 font-mono">
-						{data.studentsNeedingAttention.length}
-					</div>
-					<span className="text-[11px] text-slate-400 mt-1 block">
-						Tidak ada sprint dalam 7 hari
-					</span>
-				</div>
+				<StatCard
+					label="Mahasiswa Aktif Minggu Ini"
+					value={`${data.activeStudentsThisWeek} / ${data.totalStudents}`}
+					subtext={`${activePercent}% aktif belajar`}
+					icon={Users}
+					iconColor="text-blue-600"
+				/>
+				<StatCard
+					label="Total Learning Sprints"
+					value={data.totalSprints}
+					subtext="Sesi sprint tercatat di sistem"
+					icon={Timer}
+					iconColor="text-emerald-600"
+				/>
+				<StatCard
+					label="Peer Feedback Diberikan"
+					value={data.totalFeedbackGiven}
+					subtext="Total review antar teman sekelas"
+					icon={MessageSquare}
+					iconColor="text-sky-600"
+				/>
+				<StatCard
+					label="Perlu Perhatian (Pasif)"
+					value={data.studentsNeedingAttention.length}
+					subtext="Tidak ada sprint dalam 7 hari"
+					icon={AlertCircle}
+					iconColor="text-amber-500"
+				/>
 			</div>
 
-			{/* Grid: Common Confusions & Students Needing Attention (PRD §20 & §21) */}
+			{/* 3. Main Split Section: Confusion Analytics & Needs Attention */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				{/* Common Confusions Card */}
-				<div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-						<div className="flex items-center gap-2">
-							<div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-								<HelpCircle size={16} />
-							</div>
-							<div>
-								<h2 className="text-sm sm:text-base font-bold text-slate-900">
-									Common Confusion (Topik Membingungkan)
-								</h2>
-								<p className="text-[11px] text-slate-500">
-									Diagregasi otomatis dari refleksi sprint mahasiswa
-								</p>
-							</div>
-						</div>
+				{/* Left: Common Confusion Topics Analytics */}
+				<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+					<div className="pb-3 border-b border-slate-100">
+						<h3 className="text-sm font-semibold text-slate-900">
+							Analitik Topik Membingungkan (Common Confusions)
+						</h3>
+						<p className="text-xs text-slate-500 mt-0.5">
+							Diagregasi otomatis dari kendala refleksi sprint mahasiswa
+						</p>
 					</div>
 
-					<div className="space-y-3">
+					<div className="space-y-3 pt-1">
 						{data.commonConfusions.length === 0 ? (
-							<p className="text-xs text-slate-400 italic py-4 text-center">
-								Belum ada data kebingungan tercatat.
+							<p className="text-xs text-slate-400 italic py-6 text-center">
+								Belum ada data kendala materi yang dilaporkan mahasiswa.
 							</p>
 						) : (
-							data.commonConfusions.map((item, idx) => (
+							data.commonConfusions.map((item) => (
 								<div
-									key={idx}
-									className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 border border-amber-100 text-xs"
+									key={item.topicId}
+									className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/50 space-y-2 text-xs"
 								>
-									<span className="font-semibold text-slate-800">
-										{item.topic}
-									</span>
-									<span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold font-mono text-[11px]">
-										{item.mentions} mahasiswa
-									</span>
+									<div className="flex items-center justify-between gap-2">
+										<span className="font-semibold text-slate-900">
+											{item.topicTitle}
+										</span>
+										<span className="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+											{item.mentions} mahasiswa terkendala
+										</span>
+									</div>
+
+									<div className="space-y-1 pl-2 border-l-2 border-amber-200 text-slate-600">
+										{item.examples.slice(0, 2).map((ex, i) => (
+											<p key={i} className="line-clamp-1 italic">
+												"{ex}"
+											</p>
+										))}
+									</div>
 								</div>
 							))
 						)}
 					</div>
 				</div>
 
-				{/* Students with No Recent Activity Card */}
-				<div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-					<div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-						<div className="flex items-center gap-2">
-							<div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-								<Users size={16} />
-							</div>
-							<div>
-								<h2 className="text-sm sm:text-base font-bold text-slate-900">
-									Mahasiswa Belum Ada Aktivitas Terbaru
-								</h2>
-								<p className="text-[11px] text-slate-500">
-									Belum mencatat sprint dalam 7 hari terakhir
-								</p>
-							</div>
+				{/* Right: Students Needing Attention (>7 days inactive) */}
+				<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+					<div className="flex items-center justify-between pb-3 border-b border-slate-100">
+						<div>
+							<h3 className="text-sm font-semibold text-slate-900">
+								Mahasiswa Perlu Perhatian
+							</h3>
+							<p className="text-xs text-slate-500 mt-0.5">
+								Belum mencatat sprint dalam 7 hari terakhir
+							</p>
 						</div>
+
 						<Link
 							to="/admin-students"
-							className="text-xs font-semibold text-indigo-600 hover:underline"
+							className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
 						>
-							Kelola →
+							Kelola Whitelist →
 						</Link>
 					</div>
 
-					<div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+					<div className="space-y-2 max-h-80 overflow-y-auto pr-1">
 						{data.studentsNeedingAttention.length === 0 ? (
-							<p className="text-xs text-emerald-600 font-semibold py-4 text-center">
-								🎉 Luar biasa! Semua mahasiswa aktif belajar minggu ini.
+							<p className="text-xs text-emerald-600 font-medium py-6 text-center">
+								Semua mahasiswa aktif belajar dalam 7 hari terakhir.
 							</p>
 						) : (
 							data.studentsNeedingAttention.map((student) => (
-								<div
+								<button
+									type="button"
 									key={student.id}
-									className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs"
+									onClick={() => setInspectedStudent(student)}
+									className="w-full text-left flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs transition-colors cursor-pointer"
 								>
-									<div>
+									<div className="min-w-0">
 										<div className="flex items-center gap-2">
-											<span className="font-bold text-slate-800">
+											<span className="font-semibold text-slate-900 truncate">
 												{student.name}
 											</span>
 											{student.className && (
-												<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-xs">
+												<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-sm shrink-0">
 													{student.className}
 												</span>
 											)}
@@ -267,45 +251,47 @@ function AdminDashboardPage() {
 										</span>
 									</div>
 
-									<span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-										{student.statusLabel}
-									</span>
-								</div>
+									<div className="flex items-center gap-2 shrink-0">
+										<span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-mono">
+											{student.statusLabel}
+										</span>
+										<Eye size={14} className="text-slate-400" />
+									</div>
+								</button>
 							))
 						)}
 					</div>
 				</div>
 			</div>
 
-			{/* Recent Evidences for Fast Review */}
-			<div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
-				<div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-					<div>
-						<h2 className="text-sm sm:text-base font-bold text-slate-900">
-							Bukti Pembelajaran Terbaru (Evidence Stream)
-						</h2>
-						<p className="text-xs text-slate-500">
-							Review cepat link GitHub / Loom / Live Demo dari mahasiswa
-						</p>
-					</div>
+			{/* 4. Recent Evidence Submissions Stream */}
+			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+				<div className="pb-3 border-b border-slate-100">
+					<h3 className="text-sm font-semibold text-slate-900">
+						Bukti Pembelajaran Terbaru (Evidence Stream)
+					</h3>
+					<p className="text-xs text-slate-500 mt-0.5">
+						Review cepat submission link GitHub, Loom, atau Live Demo dari
+						mahasiswa
+					</p>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					{data.recentEvidences.map((ev) => (
 						<div
 							key={ev.id}
-							className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs"
+							className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs"
 						>
-							<div>
+							<div className="min-w-0">
 								<div className="flex items-center gap-2">
-									<span className="font-bold text-slate-800">
+									<span className="font-semibold text-slate-900 truncate">
 										{ev.studentName}
 									</span>
-									<span className="text-[10px] text-slate-400">
+									<span className="text-[10px] text-slate-400 font-mono">
 										({ev.className})
 									</span>
 								</div>
-								<p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+								<p className="text-slate-600 line-clamp-1 mt-0.5">
 									{ev.whatLearned}
 								</p>
 							</div>
@@ -314,15 +300,21 @@ function AdminDashboardPage() {
 								href={ev.evidenceUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-flex items-center gap-1 text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-semibold shrink-0"
+								className="inline-flex items-center gap-1 text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium shrink-0 transition-colors"
 							>
-								<span>Buka {ev.evidenceType}</span>
-								<ExternalLink size={12} />
+								<span>{ev.evidenceType}</span>
+								<ExternalLink size={11} />
 							</a>
 						</div>
 					))}
 				</div>
 			</div>
+
+			<StudentDetailModal
+				isOpen={!!inspectedStudent}
+				onClose={() => setInspectedStudent(null)}
+				student={inspectedStudent}
+			/>
 		</div>
 	);
 }
