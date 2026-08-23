@@ -169,6 +169,7 @@ export class DashboardService {
         classId: users.classId,
         className: classes.name,
         classStartDate: classes.startDate,
+        createdAt: users.createdAt,
         avatarUrl: users.avatarUrl,
         githubRepoUrl: users.githubRepoUrl,
         githubPageUrl: users.githubPageUrl,
@@ -254,7 +255,7 @@ export class DashboardService {
       .sort((a, b) => b.mentions - a.mentions)
       .slice(0, 8);
 
-    // 5. Students Needing Attention (Calculated from Class Start Date & 7-Day Inactivity Window)
+    // 5. Students Needing Attention (Calculated from Class Start Date & Full 7-Day Inactivity Window)
     const now = new Date();
     const defaultSevenDaysAgo = new Date();
     defaultSevenDaysAgo.setDate(defaultSevenDaysAgo.getDate() - 7);
@@ -281,48 +282,54 @@ export class DashboardService {
     for (const s of students) {
       const lastActivity = latestSprintPerUser.get(s.id) || null;
       const classStartDate = s.classStartDate ? new Date(s.classStartDate) : null;
+      const studentCreatedDate = s.createdAt ? new Date(s.createdAt) : null;
 
-      // If class start date is in the future, the class hasn't started yet
-      if (classStartDate && now < classStartDate) {
-        if (lastActivity) {
-          activeStudentIdSet.add(s.id);
-        }
+      // If the student has logged a sprint in the last 7 days, they are actively learning
+      if (lastActivity && lastActivity >= defaultSevenDaysAgo) {
+        activeStudentIdSet.add(s.id);
         continue;
       }
 
-      // Threshold is the later of (7 days ago) or (class start date)
-      const activeThreshold = classStartDate && classStartDate > defaultSevenDaysAgo
-        ? classStartDate
-        : defaultSevenDaysAgo;
-
-      const hasRecentActivity = lastActivity && lastActivity >= activeThreshold;
-
-      if (hasRecentActivity) {
-        activeStudentIdSet.add(s.id);
-      } else {
-        let statusLabel = 'Belum pernah mencatat sprint';
-        if (lastActivity) {
-          statusLabel = 'Belum ada aktivitas minggu ini';
-        } else if (classStartDate) {
-          const formattedDate = new Intl.DateTimeFormat('id-ID', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-          }).format(classStartDate);
-          statusLabel = `Belum ada sprint sejak perkuliahan dimulai (${formattedDate})`;
-        }
-
-        studentsNeedingAttention.push({
-          id: s.id,
-          name: s.name,
-          email: s.email,
-          nim: s.nim,
-          className: s.className,
-          avatarUrl: s.avatarUrl,
-          lastActivity,
-          statusLabel,
-        });
+      // If class start date is in the future, the class hasn't started yet
+      if (classStartDate && now < classStartDate) {
+        if (lastActivity) activeStudentIdSet.add(s.id);
+        continue;
       }
+
+      // Starting point: when the class officially started (or when student was enrolled)
+      const effectiveStartDate = classStartDate || studentCreatedDate || defaultSevenDaysAgo;
+      const sevenDaysAfterStart = new Date(effectiveStartDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      // If less than 7 full days have elapsed since class start/enrollment AND student hasn't logged sprint yet:
+      // They are still within their first 7-day initial window (grace period), not overdue yet.
+      if (!lastActivity && now < sevenDaysAfterStart) {
+        continue;
+      }
+
+      // Otherwise, the student has been inactive for ≥7 days:
+      let statusLabel = 'Belum pernah mencatat sprint (≥7 hari)';
+      if (lastActivity) {
+        const daysDiff = Math.max(7, Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24)));
+        statusLabel = `Tidak ada aktivitas belajar selama ${daysDiff} hari`;
+      } else if (classStartDate) {
+        const formattedDate = new Intl.DateTimeFormat('id-ID', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        }).format(classStartDate);
+        statusLabel = `Belum ada sprint sejak perkuliahan dimulai (${formattedDate})`;
+      }
+
+      studentsNeedingAttention.push({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        nim: s.nim,
+        className: s.className,
+        avatarUrl: s.avatarUrl,
+        lastActivity,
+        statusLabel,
+      });
     }
 
     // 6. Recent Evidences
