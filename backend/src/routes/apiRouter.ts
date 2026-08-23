@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/authController.js';
 import { ClassController } from '../controllers/classController.js';
 import { AdminStudentController } from '../controllers/adminStudentController.js';
+import { AdminInstructorController } from '../controllers/adminInstructorController.js';
 import { RoadmapController } from '../controllers/roadmapController.js';
 import { ChecklistController } from '../controllers/checklistController.js';
 import { SprintController } from '../controllers/sprintController.js';
@@ -15,6 +16,11 @@ import {
   batchCreateStudentSchema,
   updateStudentSchema,
 } from '../validators/studentValidators.js';
+import {
+  createInstructorSchema,
+  updateInstructorSchema,
+  deleteInstructorSchema,
+} from '../validators/instructorValidators.js';
 import {
   createWeekSchema,
   updateWeekSchema,
@@ -79,6 +85,35 @@ apiRouter.delete(
   authenticate,
   requireRole('ADMIN'),
   AdminStudentController.delete
+);
+
+// 3.2. Admin Instructor / Dosen Management (Whitelist)
+apiRouter.get(
+  '/admin/instructors',
+  authenticate,
+  requireRole('ADMIN'),
+  AdminInstructorController.list
+);
+apiRouter.post(
+  '/admin/instructors',
+  authenticate,
+  requireRole('ADMIN'),
+  validateRequest(createInstructorSchema),
+  AdminInstructorController.create
+);
+apiRouter.patch(
+  '/admin/instructors/:id',
+  authenticate,
+  requireRole('ADMIN'),
+  validateRequest(updateInstructorSchema),
+  AdminInstructorController.update
+);
+apiRouter.delete(
+  '/admin/instructors/:id',
+  authenticate,
+  requireRole('ADMIN'),
+  validateRequest(deleteInstructorSchema),
+  AdminInstructorController.delete
 );
 
 // 3.5. Admin Roadmap & Checklist Management (CRUD)

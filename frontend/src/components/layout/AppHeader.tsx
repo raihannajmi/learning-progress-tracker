@@ -74,6 +74,11 @@ export const AppHeader: React.FC<Props> = ({ setIsMobileOpen }) => {
 					title: "Kelola Mahasiswa",
 					category: "Administrasi",
 				};
+			case "/admin-instructors":
+				return {
+					title: "Kelola Dosen & TA",
+					category: "Administrasi",
+				};
 			case "/admin-roadmap":
 				return {
 					title: "Kelola Roadmap & Silabus",
@@ -113,9 +118,17 @@ export const AppHeader: React.FC<Props> = ({ setIsMobileOpen }) => {
 				</div>
 			</div>
 
-			{/* Right: User Context */}
+			{/* Right: Academic Context Badge (Desktop) / Minimal Avatar (Mobile Only) */}
 			<div className="flex items-center gap-3 shrink-0">
-				<div className="flex items-center gap-2.5">
+				{/* Desktop Term Badge */}
+				<div className="hidden lg:flex items-center gap-2">
+					<span className="text-[11px] font-mono font-medium text-slate-600 bg-slate-100/90 border border-slate-200/90 px-2.5 py-1 rounded-md">
+						Semester 2026/2027 Ganjil
+					</span>
+				</div>
+
+				{/* Mobile-only avatar trigger */}
+				<div className="flex lg:hidden items-center gap-2">
 					<div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700">
 						{user.avatarUrl ? (
 							<img
@@ -126,15 +139,6 @@ export const AppHeader: React.FC<Props> = ({ setIsMobileOpen }) => {
 						) : (
 							user.name.charAt(0).toUpperCase()
 						)}
-					</div>
-					<div className="hidden sm:block text-right">
-						<p className="text-xs font-semibold text-slate-800 leading-tight truncate max-w-[160px]">
-							{user.name}
-						</p>
-						<p className="text-[11px] text-slate-400 font-mono">
-							{user.className ||
-								(user.role === "ADMIN" ? "Dosen / TA" : "Mahasiswa")}
-						</p>
 					</div>
 				</div>
 			</div>

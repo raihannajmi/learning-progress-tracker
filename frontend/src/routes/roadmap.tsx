@@ -128,9 +128,9 @@ function RoadmapPage() {
 		totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
 	return (
-		<div className="max-w-4xl mx-auto w-full space-y-6">
+		<div className="max-w-4xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Header Information & Overall Progress */}
-			<div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+			<div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 min-w-0">
 				<div className="space-y-1">
 					<div className="flex items-center gap-2">
 						<span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -167,7 +167,7 @@ function RoadmapPage() {
 
 					<button
 						type="button"
-						onClick={() => setSelectedTopicIdForSprint("")}
+						onClick={() => openReflectionModal(null, 25)}
 						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 					>
 						<Timer size={14} />

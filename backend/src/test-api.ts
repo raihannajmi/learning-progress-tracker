@@ -4,6 +4,7 @@ import { ChecklistService } from './services/checklistService.js';
 import { SprintService } from './services/sprintService.js';
 import { DashboardService } from './services/dashboardService.js';
 import { AdminStudentService } from './services/adminStudentService.js';
+import { AdminInstructorService } from './services/adminInstructorService.js';
 import { RoadmapAdminService } from './services/roadmapAdminService.js';
 import { ClassService } from './services/classService.js';
 import { db, queryClient } from './db/index.js';
@@ -183,7 +184,32 @@ async function runTests() {
     await RoadmapAdminService.deleteWeek(createdWeek.id);
     console.log('   ✅ PASS: Admin successfully cleaned up test syllabus week & cascaded topics/checklists.');
 
-    console.log('\n🎉 ALL 12 BACKEND VERIFICATION CHECKS PASSED WITH 100% SUCCESS!\n');
+    // 13. Admin Instructor / Dosen Management (CRUD & Whitelist)
+    console.log('1️⃣3️⃣ Testing Admin Instructor / Dosen Management (CRUD)...');
+    const testInstructorEmail = `dosen.test.${Date.now()}@univ.ac.id`;
+    const newInstructor = await AdminInstructorService.addInstructor({
+      name: 'Dr. Hendra Wijaya, M.Kom.',
+      email: testInstructorEmail,
+    });
+    console.log(`   ✅ PASS: New Instructor whitelisted: ${newInstructor.name} (${newInstructor.email})`);
+
+    const instructorList = await AdminInstructorService.listInstructors();
+    console.log(`   ✅ PASS: Listed instructors. Total: ${instructorList.total}`);
+
+    const updatedInstructor = await AdminInstructorService.updateInstructor(
+      newInstructor.id,
+      { name: 'Prof. Dr. Hendra Wijaya, M.Kom.' },
+      adminAuth.user.id
+    );
+    console.log(`   ✅ PASS: Instructor updated: ${updatedInstructor.name}`);
+
+    const delInstructorRes = await AdminInstructorService.deleteInstructor(
+      newInstructor.id,
+      adminAuth.user.id
+    );
+    console.log(`   ✅ PASS: Instructor deleted: ${delInstructorRes.success}`);
+
+    console.log('\n🎉 ALL 13 BACKEND VERIFICATION CHECKS PASSED WITH 100% SUCCESS!\n');
   } catch (error) {
     console.error('❌ Verification check failed:', error);
     process.exit(1);

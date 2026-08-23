@@ -64,9 +64,9 @@ export const Pagination: React.FC<Props> = ({
 	};
 
 	return (
-		<div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border-t border-slate-200 text-xs">
+		<div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border-t border-slate-200 text-xs min-w-0 max-w-full">
 			{/* Items Range & Page Size Selector */}
-			<div className="flex items-center gap-3 text-slate-500">
+			<div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-slate-500 text-center sm:text-left">
 				{startItem && endItem && totalItems !== undefined && (
 					<span>
 						Menampilkan{" "}
@@ -103,7 +103,7 @@ export const Pagination: React.FC<Props> = ({
 			</div>
 
 			{/* Page Navigation Controls */}
-			<div className="flex items-center gap-1">
+			<div className="flex flex-wrap items-center justify-center gap-1">
 				<button
 					type="button"
 					onClick={() => onPageChange(Math.max(1, currentPage - 1))}

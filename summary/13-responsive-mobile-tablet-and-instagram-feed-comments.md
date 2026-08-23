@@ -27,17 +27,25 @@ Pembaruan arsitektur antarmuka dan backend untuk mengoptimalkan pengalaman pengg
 
 ---
 
-## 2. Peningkatan Responsif Mobile & Tablet Viewport Ergonomics
+## 2. Solusi Total Masalah "Geser-Geser Kanan-Kiri" (Horizontal Scroll Elimination)
 
-1. **Layout & Padding Global (`__root.tsx`):**
-   - Padding container disesuaikan menjadi `px-3.5 sm:px-6 lg:px-8 py-5 sm:py-7` agar tidak sempit pada layar mobile 320px–375px.
-2. **Navigasi Sidebar (`AppSidebar.tsx`):**
-   - Menambahkan rute `/admin-review` (*Antrean Review Submisi*) dengan ikon `ClipboardCheck` ke dalam menu sidebar pengajar.
-   - Drawer mobile off-canvas dengan animasi slide-in dan backdrop blur halus.
-3. **Checklist & Touch Targets (`SelfAssessmentButton.tsx` & `roadmap.tsx`):**
-   - Menjamin seluruh badge tombol status checklist memiliki touch target nyaman ($\ge 44\text{px}$ pada mobile).
-4. **Modal & Dialog Scrollability (`admin-students.tsx`, `admin-classes.tsx`, `SprintModal.tsx`):**
-   - Semua modal form dibungkus dengan `max-h-[90dvh] overflow-y-auto` agar tidak terpotong saat keyboard virtual smartphone terbuka.
+### 🔍 Akar Penyebab (Root Cause Analysis):
+1. **Flex Container Expansion:** Default CSS flex container (`min-width: auto`) membuat container utama meregang selebar konten terluas di dalamnya alih-alih terbatasi oleh lebar viewport smartphone/tablet.
+2. **Side-by-side Badge Clusters:** Pada `admin-review.tsx`, 4 elemen (HabitBadge, Evidence Link, ReviewStatus, Button) berada dalam satu baris kaku tanpa `flex-wrap` dan memakai `shrink-0` (total lebar $\approx 440\text{px}$). Pada layar smartphone 360px–390px, hal ini mendorong seluruh halaman keluar batas kanan layar.
+3. **Data Table 6 Kolom di Layar Kecil:** Pada `admin-students.tsx`, tabel 6 kolom memaksa container melebar jika tidak ditangani dengan tampilan kartu responsif pada mobile.
+
+### 🛠️ Solusi yang Diimplementasikan:
+1. **Layout Wrapper (`__root.tsx`):**
+   - Menambahkan `min-w-0 max-w-full overflow-x-hidden` pada container flex root dan `<main>`.
+2. **Hybrid Mobile Cards di `/admin-students`:**
+   - **Layar Mobile (`md:hidden`):** Menampilkan daftar kartu mahasiswa yang padat, rapi, dan responsif dengan avatar, nama, email, NIM, badge kelas, jumlah progres, jumlah sprint, serta tombol aksi cepat tanpa geser horizontal.
+   - **Layar Tablet & Desktop (`hidden md:block`):** Menampilkan tabel data lengkap dengan `overflow-x-auto`.
+3. **Responsive Actions Wrap di `/admin-review`:**
+   - Menambahkan `flex-wrap` dan `min-w-0` pada action cluster sehingga badge status dan tombol review bertumpuk secara rapi pada layar sempit tanpa mendorong lebar halaman.
+4. **Responsive Pagination (`Pagination.tsx`):**
+   - Tombol navigasi halaman dan range data membungkus (*wrap*) secara fleksibel di layar smartphone.
+5. **Standardisasi Seluruh Halaman Admin:**
+   - Semua rute (`/admin`, `/admin-attention`, `/admin-activity`, `/admin-confusions`, `/admin-roadmap`, `/admin-classes`, `/class`, `/dashboard`, `/sprints`, `/roadmap`) kini menerapkan `min-w-0 max-w-full` secara konsisten.
 
 ---
 

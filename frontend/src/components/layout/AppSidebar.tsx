@@ -8,6 +8,7 @@ import {
 	Code2,
 	Compass,
 	Eye,
+	GraduationCap,
 	HelpCircle,
 	Layers,
 	LogOut,
@@ -106,6 +107,11 @@ export const AppSidebar: React.FC<Props> = ({
 			to: "/admin-students",
 			label: "Kelola Mahasiswa",
 			icon: UserCheck,
+		},
+		{
+			to: "/admin-instructors",
+			label: "Kelola Dosen & TA",
+			icon: GraduationCap,
 		},
 		{
 			to: "/admin-roadmap",

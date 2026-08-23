@@ -15,6 +15,7 @@ import { Route as AdminActivityRouteImport } from './routes/admin-activity'
 import { Route as AdminAttentionRouteImport } from './routes/admin-attention'
 import { Route as AdminClassesRouteImport } from './routes/admin-classes'
 import { Route as AdminConfusionsRouteImport } from './routes/admin-confusions'
+import { Route as AdminInstructorsRouteImport } from './routes/admin-instructors'
 import { Route as AdminReviewRouteImport } from './routes/admin-review'
 import { Route as AdminRoadmapRouteImport } from './routes/admin-roadmap'
 import { Route as AdminStudentsRouteImport } from './routes/admin-students'
@@ -51,6 +52,11 @@ const AdminClassesRoute = AdminClassesRouteImport.update({
 const AdminConfusionsRoute = AdminConfusionsRouteImport.update({
   id: '/admin-confusions',
   path: '/admin-confusions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminInstructorsRoute = AdminInstructorsRouteImport.update({
+  id: '/admin-instructors',
+  path: '/admin-instructors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminReviewRoute = AdminReviewRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/admin-attention': typeof AdminAttentionRoute
   '/admin-classes': typeof AdminClassesRoute
   '/admin-confusions': typeof AdminConfusionsRoute
+  '/admin-instructors': typeof AdminInstructorsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/admin-attention': typeof AdminAttentionRoute
   '/admin-classes': typeof AdminClassesRoute
   '/admin-confusions': typeof AdminConfusionsRoute
+  '/admin-instructors': typeof AdminInstructorsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/admin-attention': typeof AdminAttentionRoute
   '/admin-classes': typeof AdminClassesRoute
   '/admin-confusions': typeof AdminConfusionsRoute
+  '/admin-instructors': typeof AdminInstructorsRoute
   '/admin-review': typeof AdminReviewRoute
   '/admin-roadmap': typeof AdminRoadmapRoute
   '/admin-students': typeof AdminStudentsRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/admin-attention'
     | '/admin-classes'
     | '/admin-confusions'
+    | '/admin-instructors'
     | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/admin-attention'
     | '/admin-classes'
     | '/admin-confusions'
+    | '/admin-instructors'
     | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/admin-attention'
     | '/admin-classes'
     | '/admin-confusions'
+    | '/admin-instructors'
     | '/admin-review'
     | '/admin-roadmap'
     | '/admin-students'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   AdminAttentionRoute: typeof AdminAttentionRoute
   AdminClassesRoute: typeof AdminClassesRoute
   AdminConfusionsRoute: typeof AdminConfusionsRoute
+  AdminInstructorsRoute: typeof AdminInstructorsRoute
   AdminReviewRoute: typeof AdminReviewRoute
   AdminRoadmapRoute: typeof AdminRoadmapRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/admin-confusions'
       fullPath: '/admin-confusions'
       preLoaderRoute: typeof AdminConfusionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-instructors': {
+      id: '/admin-instructors'
+      path: '/admin-instructors'
+      fullPath: '/admin-instructors'
+      preLoaderRoute: typeof AdminInstructorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-review': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAttentionRoute: AdminAttentionRoute,
   AdminClassesRoute: AdminClassesRoute,
   AdminConfusionsRoute: AdminConfusionsRoute,
+  AdminInstructorsRoute: AdminInstructorsRoute,
   AdminReviewRoute: AdminReviewRoute,
   AdminRoadmapRoute: AdminRoadmapRoute,
   AdminStudentsRoute: AdminStudentsRoute,
