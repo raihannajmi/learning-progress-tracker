@@ -145,69 +145,76 @@ function LoginPage() {
 							</span>
 						</div>
 
-						{/* Quick Demo Switcher */}
-						<div className="mt-6 pt-5 border-t border-slate-100">
-							<div className="mb-2.5">
-								<span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-									Simulasi Akun Terdaftar (Dev Mode)
-								</span>
-							</div>
-
-							<div className="space-y-2">
-								<button
-									type="button"
-									onClick={() =>
-										handleVerify("dev-mock:najmiraihanworks@gmail.com")
-									}
-									disabled={loading}
-									className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
-								>
-									<div className="flex items-center gap-2 min-w-0">
-										<ShieldCheck size={14} className="text-blue-600 shrink-0" />
-										<span className="truncate">Alif Najmi Raihan</span>
-									</div>
-									<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
-										DOSEN / ADMIN
+						{/* Quick Demo Switcher (Only visible in Development mode) */}
+						{import.meta.env.DEV && (
+							<div className="mt-6 pt-5 border-t border-slate-100">
+								<div className="mb-2.5">
+									<span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+										Simulasi Akun Terdaftar (Dev Mode)
 									</span>
-								</button>
+								</div>
 
-								<button
-									type="button"
-									onClick={() =>
-										handleVerify("dev-mock:student.01@demo.univ.ac.id")
-									}
-									disabled={loading}
-									className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
-								>
-									<div className="flex items-center gap-2 min-w-0">
-										<User size={14} className="text-slate-500 shrink-0" />
-										<span className="truncate">Budi Santoso (Rabu, DC 3A)</span>
-									</div>
-									<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
-										MAHASISWA
-									</span>
-								</button>
-
-								<button
-									type="button"
-									onClick={() =>
-										handleVerify("dev-mock:student.16@demo.univ.ac.id")
-									}
-									disabled={loading}
-									className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
-								>
-									<div className="flex items-center gap-2 min-w-0">
-										<User size={14} className="text-slate-500 shrink-0" />
-										<span className="truncate">
-											Yunita Sari (Kamis, D1 327)
+								<div className="space-y-2">
+									<button
+										type="button"
+										onClick={() =>
+											handleVerify("dev-mock:najmiraihanworks@gmail.com")
+										}
+										disabled={loading}
+										className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
+									>
+										<div className="flex items-center gap-2 min-w-0">
+											<ShieldCheck
+												size={14}
+												className="text-blue-600 shrink-0"
+											/>
+											<span className="truncate">Alif Najmi Raihan</span>
+										</div>
+										<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
+											DOSEN / ADMIN
 										</span>
-									</div>
-									<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
-										MAHASISWA
-									</span>
-								</button>
+									</button>
+
+									<button
+										type="button"
+										onClick={() =>
+											handleVerify("dev-mock:student.01@demo.univ.ac.id")
+										}
+										disabled={loading}
+										className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
+									>
+										<div className="flex items-center gap-2 min-w-0">
+											<User size={14} className="text-slate-500 shrink-0" />
+											<span className="truncate">
+												Budi Santoso (Rabu, DC 3A)
+											</span>
+										</div>
+										<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
+											MAHASISWA
+										</span>
+									</button>
+
+									<button
+										type="button"
+										onClick={() =>
+											handleVerify("dev-mock:student.16@demo.univ.ac.id")
+										}
+										disabled={loading}
+										className="w-full flex items-center justify-between p-2.5 text-xs font-medium rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-colors cursor-pointer text-left"
+									>
+										<div className="flex items-center gap-2 min-w-0">
+											<User size={14} className="text-slate-500 shrink-0" />
+											<span className="truncate">
+												Yunita Sari (Kamis, D1 327)
+											</span>
+										</div>
+										<span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-sm font-mono font-medium shrink-0">
+											MAHASISWA
+										</span>
+									</button>
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 				</div>
 

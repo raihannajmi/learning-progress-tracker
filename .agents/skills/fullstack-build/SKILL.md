@@ -161,5 +161,10 @@ these even in a quick response:
   `database.md` & `summary/08-database-driven-architecture-and-dual-seeds.md`.
   Zero hardcoded fallback strings/arrays in application code; all domain entities,
   whitelists, syllabus, and progress must come dynamically from the database.
+- **Drizzle Migration Discipline (Mandatory for Schema Changes):**
+  1. Whenever modifying `src/db/schema.ts`, ALWAYS run `pnpm db:generate` to produce a versioned SQL file in `backend/drizzle/`.
+  2. Ensure migration SQL statements use idempotent guards (`ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, safe DO blocks for constraints).
+  3. Run `pnpm db:migrate` (`src/db/migrate.ts`) to apply pending migrations safely in dev and production pipelines (Easypanel/Docker/CI/CD).
+  4. Never commit unmigrated schema changes or execute blind schema pushes in production.
 
 "stop fullstack-build" or "normal mode": revert to normal coding behavior.
