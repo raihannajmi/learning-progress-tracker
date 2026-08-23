@@ -113,6 +113,7 @@ export const SprintModal: React.FC<Props> = ({
 
 				{/* Form */}
 				<Formik
+					enableReinitialize={true}
 					initialValues={{
 						topicId: defaultTopicId || "",
 						durationMinutes: 25,

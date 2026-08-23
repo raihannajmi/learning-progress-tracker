@@ -33,8 +33,10 @@ function StudentDashboard() {
 	React.useEffect(() => {
 		if (!isAuthenticated) {
 			navigate({ to: "/" });
+		} else if (user?.role === "ADMIN") {
+			navigate({ to: "/admin" });
 		}
-	}, [isAuthenticated, navigate]);
+	}, [isAuthenticated, user, navigate]);
 
 	const { data, isLoading, error } = useQuery<StudentDashboardData>({
 		queryKey: ["studentDashboard"],
@@ -42,7 +44,7 @@ function StudentDashboard() {
 			const res: any = await api.get("/dashboard/student");
 			return res.data;
 		},
-		enabled: isAuthenticated,
+		enabled: isAuthenticated && user?.role !== "ADMIN",
 	});
 
 	if (isLoading) {
@@ -74,6 +76,10 @@ function StudentDashboard() {
 	}
 
 	const firstName = user?.name ? user.name.split(" ")[0] : "Mahasiswa";
+	const totalMins =
+		data.summary.totalMinutesLearned ?? data.summary.totalDurationMinutes ?? 0;
+	const weeklySprints =
+		data.summary.sprintsThisWeek ?? data.summary.weeklySprintsCount ?? 0;
 
 	return (
 		<div className="space-y-6">
@@ -138,14 +144,14 @@ function StudentDashboard() {
 				/>
 				<StatCard
 					label="Total Waktu Belajar"
-					value={`${data.summary.totalDurationMinutes}m`}
+					value={`${totalMins}m`}
 					subtext={`Dari ${data.summary.totalSprints} sesi sprint`}
 					icon={Timer}
 					iconColor="text-blue-600"
 				/>
 				<StatCard
 					label="Aktivitas Minggu Ini"
-					value={`${data.summary.weeklySprintsCount} sprint`}
+					value={`${weeklySprints} sprint`}
 					subtext="7 hari terakhir"
 					icon={Compass}
 					iconColor="text-slate-500"

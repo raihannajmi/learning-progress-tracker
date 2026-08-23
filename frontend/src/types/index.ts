@@ -114,9 +114,11 @@ export interface StudentDashboardData {
 		completedChecklists: number;
 		overallPercentage: number;
 		totalSprints: number;
-		totalMinutesLearned: number;
+		totalMinutesLearned?: number;
+		totalDurationMinutes?: number;
 		habitReachedCount: number;
-		sprintsThisWeek: number;
+		sprintsThisWeek?: number;
+		weeklySprintsCount?: number;
 	};
 	categoryProgress: Array<{
 		category: string;
@@ -140,7 +142,9 @@ export interface AdminDashboardData {
 	totalFeedbackGiven: number;
 	commonConfusions: Array<{
 		topic: string;
+		topicTitle?: string;
 		mentions: number;
+		examples?: string[];
 	}>;
 	studentsNeedingAttention: Array<{
 		id: string;

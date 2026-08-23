@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Filter, MessageSquare } from "lucide-react";
 import React, { useState } from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
+import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
@@ -14,6 +15,8 @@ function ClassFeedPage() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
 	const [selectedClassId, setSelectedClassId] = useState<string>("");
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -105,9 +108,23 @@ function ClassFeedPage() {
 						<div className="h-36 bg-white border border-slate-200 rounded-xl animate-pulse" />
 					</div>
 				) : sprints && sprints.length > 0 ? (
-					sprints.map((sprint) => (
-						<PeerFeedbackCard key={sprint.id} sprint={sprint} />
-					))
+					<>
+						{sprints
+							.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+							.map((sprint) => (
+								<PeerFeedbackCard key={sprint.id} sprint={sprint} />
+							))}
+
+						<Pagination
+							currentPage={currentPage}
+							totalPages={Math.ceil(sprints.length / pageSize) || 1}
+							onPageChange={setCurrentPage}
+							pageSize={pageSize}
+							totalItems={sprints.length}
+							onPageSizeChange={setPageSize}
+							pageSizeOptions={[5, 10, 20]}
+						/>
+					</>
 				) : (
 					<EmptyState
 						icon={MessageSquare}

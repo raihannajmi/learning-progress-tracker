@@ -13,7 +13,7 @@ export const Route = createFileRoute("/roadmap")({ component: RoadmapPage });
 
 function RoadmapPage() {
 	const navigate = useNavigate();
-	const { isAuthenticated } = useAuthStore();
+	const { user, isAuthenticated } = useAuthStore();
 	const queryClient = useQueryClient();
 
 	const [expandedWeeks, setExpandedWeeks] = useState<Record<string, boolean>>(
@@ -26,8 +26,10 @@ function RoadmapPage() {
 	React.useEffect(() => {
 		if (!isAuthenticated) {
 			navigate({ to: "/" });
+		} else if (user?.role === "ADMIN") {
+			navigate({ to: "/admin-roadmap" });
 		}
-	}, [isAuthenticated, navigate]);
+	}, [isAuthenticated, user, navigate]);
 
 	const { data: weeks, isLoading } = useQuery<RoadmapWeek[]>({
 		queryKey: ["roadmap"],

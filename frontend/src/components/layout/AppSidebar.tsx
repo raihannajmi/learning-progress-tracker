@@ -159,33 +159,35 @@ export const AppSidebar: React.FC<Props> = ({
 
 				{/* Navigation Sections */}
 				<div className="flex-1 overflow-y-auto px-3 py-3 space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-					{/* Main Navigation */}
-					<div>
-						{!isCollapsed && (
-							<div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-								Navigasi Mahasiswa
-							</div>
-						)}
-						<nav className="space-y-0.5">
-							{studentLinks.map((link) => {
-								const Icon = link.icon;
-								return (
-									<Link
-										key={link.to}
-										to={link.to}
-										onClick={() => setIsMobileOpen(false)}
-										className={navLinkClass(link.to)}
-										title={isCollapsed ? link.label : undefined}
-									>
-										<Icon size={16} className="shrink-0" />
-										{!isCollapsed && (
-											<span className="truncate">{link.label}</span>
-										)}
-									</Link>
-								);
-							})}
-						</nav>
-					</div>
+					{/* Student Navigation (Students Only) */}
+					{!isAdmin && (
+						<div>
+							{!isCollapsed && (
+								<div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+									Navigasi Mahasiswa
+								</div>
+							)}
+							<nav className="space-y-0.5">
+								{studentLinks.map((link) => {
+									const Icon = link.icon;
+									return (
+										<Link
+											key={link.to}
+											to={link.to}
+											onClick={() => setIsMobileOpen(false)}
+											className={navLinkClass(link.to)}
+											title={isCollapsed ? link.label : undefined}
+										>
+											<Icon size={16} className="shrink-0" />
+											{!isCollapsed && (
+												<span className="truncate">{link.label}</span>
+											)}
+										</Link>
+									);
+								})}
+							</nav>
+						</div>
+					)}
 
 					{/* Admin Zone (Dosen / TA only) */}
 					{isAdmin && (

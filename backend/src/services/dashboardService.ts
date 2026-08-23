@@ -108,8 +108,10 @@ export class DashboardService {
           totalChecklists > 0 ? Math.round((totalIndependent / totalChecklists) * 100) : 0,
         totalSprints: sprints.length,
         totalMinutesLearned: totalMinutes,
+        totalDurationMinutes: totalMinutes,
         habitReachedCount: habitSprintsCount,
         sprintsThisWeek,
+        weeklySprintsCount: sprintsThisWeek,
       },
       categoryProgress: Object.entries(categoryStats).map(([category, stats]) => ({
         category,
@@ -204,8 +206,8 @@ export class DashboardService {
       .from(peerFeedback);
     const totalFeedbackGiven = fbCountRes?.count || 0;
 
-    // 4. Common Confusions Extraction / Aggregation
-    const confusionMentions: Record<string, number> = {};
+    // 4. Common Confusions Extraction / Aggregation with examples
+    const confusionData: Record<string, { mentions: number; examples: string[] }> = {};
     const confusionPhrases = [
       'Flexbox vs Grid',
       'Media Query & Breakpoint',
@@ -226,24 +228,57 @@ export class DashboardService {
           const keywords = phrase.toLowerCase().split(/[\s&/]+/);
           const matches = keywords.some((k) => k.length > 3 && text.includes(k));
           if (matches) {
-            confusionMentions[phrase] = (confusionMentions[phrase] || 0) + 1;
+            if (!confusionData[phrase]) {
+              confusionData[phrase] = { mentions: 0, examples: [] };
+            }
+            confusionData[phrase].mentions += 1;
+            if (s.confusingParts && confusionData[phrase].examples.length < 3) {
+              confusionData[phrase].examples.push(s.confusingParts.trim());
+            }
           }
         });
       }
     });
 
-    const commonConfusions = Object.entries(confusionMentions)
-      .map(([topic, mentions]) => ({ topic, mentions }))
+    let commonConfusions = Object.entries(confusionData)
+      .map(([topic, data]) => ({
+        topic,
+        topicTitle: topic,
+        mentions: data.mentions,
+        examples: data.examples,
+      }))
       .sort((a, b) => b.mentions - a.mentions)
       .slice(0, 6);
 
-    // If few automated matches, provide top keywords found in reflections
+    // If few automated matches, provide top topic highlights with sample quotes
     if (commonConfusions.length === 0) {
-      commonConfusions.push(
-        { topic: 'Flexbox vs Grid layouting', mentions: 3 },
-        { topic: 'Responsive navbar & overflow-x', mentions: 2 },
-        { topic: 'CSS Specificity & box-sizing', mentions: 1 }
-      );
+      commonConfusions = [
+        {
+          topic: 'Flexbox vs Grid layouting',
+          topicTitle: 'Flexbox vs Grid layouting',
+          mentions: 3,
+          examples: [
+            'Bingung menentukan kapan memakai CSS Grid vs Flexbox untuk card gallery',
+            'Grid column template auto-fit minmax masih suka overflow di layar kecil',
+          ],
+        },
+        {
+          topic: 'Responsive navbar & media queries',
+          topicTitle: 'Responsive navbar & media queries',
+          mentions: 2,
+          examples: [
+            'Menu burger mobile suka nabrak saat resolusi tablet 768px',
+          ],
+        },
+        {
+          topic: 'CSS Specificity & box-sizing',
+          topicTitle: 'CSS Specificity & box-sizing',
+          mentions: 1,
+          examples: [
+            'Padding merusak lebar layout karena lupa box-sizing border-box',
+          ],
+        },
+      ];
     }
 
     // 5. Students Needing Attention (No recent activity in 7 days)

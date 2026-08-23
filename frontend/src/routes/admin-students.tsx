@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import * as Yup from "yup";
+import { Pagination } from "../components/common/Pagination.js";
 import { StudentDetailModal } from "../components/common/StudentDetailModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
@@ -47,6 +48,8 @@ function AdminStudentsPage() {
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedClassFilter, setSelectedClassFilter] = useState("");
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 	const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 	const [batchClassId, setBatchClassId] = useState("");
@@ -162,6 +165,13 @@ function AdminStudentsPage() {
 		}
 	};
 
+	const totalStudentsCount = students?.length || 0;
+	const totalPages = Math.ceil(totalStudentsCount / pageSize) || 1;
+	const paginatedStudents = (students || []).slice(
+		(currentPage - 1) * pageSize,
+		currentPage * pageSize,
+	);
+
 	return (
 		<div className="space-y-6">
 			{/* 1. Header & Quick Actions */}
@@ -222,7 +232,10 @@ function AdminStudentsPage() {
 						type="text"
 						placeholder="Cari nama, email, atau NIM..."
 						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
+						onChange={(e) => {
+							setSearchQuery(e.target.value);
+							setCurrentPage(1);
+						}}
 						className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
 					/>
 				</div>
@@ -231,7 +244,10 @@ function AdminStudentsPage() {
 					<Filter size={14} className="text-slate-400" />
 					<select
 						value={selectedClassFilter}
-						onChange={(e) => setSelectedClassFilter(e.target.value)}
+						onChange={(e) => {
+							setSelectedClassFilter(e.target.value);
+							setCurrentPage(1);
+						}}
 						className="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
 					>
 						<option value="">Semua Kelas</option>
@@ -268,8 +284,8 @@ function AdminStudentsPage() {
 										Memuat daftar whitelist mahasiswa...
 									</td>
 								</tr>
-							) : students && students.length > 0 ? (
-								students.map((st) => (
+							) : paginatedStudents && paginatedStudents.length > 0 ? (
+								paginatedStudents.map((st) => (
 									<tr
 										key={st.id}
 										className="hover:bg-slate-50/60 transition-colors"
@@ -388,6 +404,16 @@ function AdminStudentsPage() {
 						</tbody>
 					</table>
 				</div>
+
+				<Pagination
+					currentPage={currentPage}
+					totalPages={totalPages}
+					onPageChange={setCurrentPage}
+					pageSize={pageSize}
+					totalItems={totalStudentsCount}
+					onPageSizeChange={setPageSize}
+					pageSizeOptions={[10, 25, 50]}
+				/>
 			</div>
 
 			{/* Add Single Student Modal */}
@@ -408,6 +434,7 @@ function AdminStudentsPage() {
 						</div>
 
 						<Formik
+							enableReinitialize={true}
 							initialValues={{
 								name: "",
 								email: "",

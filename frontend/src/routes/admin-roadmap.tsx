@@ -581,6 +581,7 @@ function AdminRoadmapPage() {
 						</div>
 
 						<Formik
+							enableReinitialize={true}
 							initialValues={{
 								weekNumber:
 									weekModalData.week?.weekNumber ||
@@ -713,6 +714,7 @@ function AdminRoadmapPage() {
 						</div>
 
 						<Formik
+							enableReinitialize={true}
 							initialValues={{
 								title: topicModalData.topic?.title || "",
 								category: topicModalData.topic?.category || "HTML",
@@ -837,6 +839,7 @@ function AdminRoadmapPage() {
 						</div>
 
 						<Formik
+							enableReinitialize={true}
 							initialValues={{
 								statement: checklistModalData.checklist?.statement || "",
 								sortOrder: checklistModalData.checklist?.sortOrder || 1,

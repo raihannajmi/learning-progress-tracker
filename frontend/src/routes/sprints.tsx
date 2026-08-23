@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Flame, Pause, Play, Plus, RotateCcw, Timer } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
+import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
 import { SprintModal } from "../components/common/SprintModal.js";
 import { StatCard } from "../components/common/StatCard.js";
@@ -16,6 +17,8 @@ function SprintsPage() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 
 	// 25-Minute Focus Timer State
 	const [timerSeconds, setTimerSeconds] = useState(25 * 60);
@@ -25,8 +28,10 @@ function SprintsPage() {
 	React.useEffect(() => {
 		if (!isAuthenticated) {
 			navigate({ to: "/" });
+		} else if (user?.role === "ADMIN") {
+			navigate({ to: "/admin" });
 		}
-	}, [isAuthenticated, navigate]);
+	}, [isAuthenticated, user, navigate]);
 
 	// Pomodoro Interval
 	useEffect(() => {
@@ -193,9 +198,23 @@ function SprintsPage() {
 			{/* 4. Sprints Stream */}
 			<div className="space-y-4">
 				{sprints && sprints.length > 0 ? (
-					sprints.map((sprint) => (
-						<PeerFeedbackCard key={sprint.id} sprint={sprint} />
-					))
+					<>
+						{sprints
+							.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+							.map((sprint) => (
+								<PeerFeedbackCard key={sprint.id} sprint={sprint} />
+							))}
+
+						<Pagination
+							currentPage={currentPage}
+							totalPages={Math.ceil(sprints.length / pageSize) || 1}
+							onPageChange={setCurrentPage}
+							pageSize={pageSize}
+							totalItems={sprints.length}
+							onPageSizeChange={setPageSize}
+							pageSizeOptions={[5, 10, 20]}
+						/>
+					</>
 				) : (
 					<EmptyState
 						icon={Timer}
