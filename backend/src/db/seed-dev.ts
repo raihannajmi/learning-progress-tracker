@@ -14,7 +14,30 @@ export async function seedDev() {
   console.log('🧪 [DEVELOPMENT SEED] Starting development database seeding...');
 
   // 1. Run baseline production seed first
-  const { students } = await seedProd();
+  const { classes: dbClasses } = await seedProd();
+
+  // In development, insert initial demo students for testing
+  console.log('👨‍🎓 [DEVELOPMENT SEED] Seeding demo students for development testing...');
+  const { initialStudents } = await import('./data/students.js');
+  const classMap = new Map<string, string>();
+  dbClasses.forEach((c) => classMap.set(c.name, c.id));
+  const defaultClassId = dbClasses[0]?.id;
+
+  const studentRows = initialStudents.map((st) => {
+    const classId = classMap.get(st.className) || defaultClassId;
+    const username = st.email.split('@')[0];
+    return {
+      name: st.name.trim(),
+      email: st.email.trim().toLowerCase(),
+      nim: st.nim.trim(),
+      role: 'STUDENT' as const,
+      classId,
+      githubRepoUrl: `https://github.com/${username}/webdev-portfolio`,
+      githubPageUrl: `https://${username}.github.io/webdev-portfolio`,
+    };
+  });
+
+  const students = await db.insert(users).values(studentRows).returning();
 
   console.log('✨ [DEVELOPMENT SEED] Injecting realistic student activity, sprints, and discussions...');
 

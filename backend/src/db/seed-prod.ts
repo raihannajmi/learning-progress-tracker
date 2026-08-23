@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { db, queryClient } from './index.js';
 import {
   classes,
@@ -12,7 +10,6 @@ import {
   peerFeedback,
 } from './schema.js';
 import { initialClasses } from './data/classes.js';
-import { initialStudents } from './data/students.js';
 import { initialCurriculum } from './data/curriculum.js';
 
 export async function seedProd() {
@@ -35,10 +32,6 @@ export async function seedProd() {
     .insert(classes)
     .values(initialClasses)
     .returning();
-
-  const classMap = new Map<string, string>();
-  insertedClasses.forEach((c) => classMap.set(c.name, c.id));
-  const defaultClassId = insertedClasses[0]?.id;
 
   // 3. Insert Admin / Lecturer / TA Whitelist
   console.log('👥 Seeding Instructor & Admin Whitelist...');
@@ -64,39 +57,7 @@ export async function seedProd() {
 
   await db.insert(users).values(initialAdmins);
 
-  // 4. Insert Student Whitelists (Check for private real dataset first)
-  let studentsData = initialStudents;
-  const privateFilePath = path.join(process.cwd(), 'src/db/data/students.private.json');
-
-  if (fs.existsSync(privateFilePath)) {
-    try {
-      const raw = fs.readFileSync(privateFilePath, 'utf-8');
-      studentsData = JSON.parse(raw);
-      console.log(`🔒 [PRIVATE DATA] Loaded ${studentsData.length} real student records from git-ignored students.private.json`);
-    } catch {
-      console.warn('⚠️ Could not parse students.private.json, using default dataset.');
-    }
-  } else {
-    console.log(`ℹ️ [DEMO DATA] Seeding ${studentsData.length} public demo students (safe for public repository)`);
-  }
-
-  const studentRows = studentsData.map((st) => {
-    const classId = classMap.get(st.className) || defaultClassId;
-    const username = st.email.split('@')[0];
-    return {
-      name: st.name.trim(),
-      email: st.email.trim().toLowerCase(),
-      nim: st.nim.trim(),
-      role: 'STUDENT' as const,
-      classId,
-      githubRepoUrl: `https://github.com/${username}/webdev-portfolio`,
-      githubPageUrl: `https://${username}.github.io/webdev-portfolio`,
-    };
-  });
-
-  const insertedStudents = await db.insert(users).values(studentRows).returning();
-
-  // 5. Insert Official 8-Week Curriculum & Checklists
+  // 4. Insert Official 8-Week Curriculum & Checklists
   console.log('🗺️ Seeding Official 8-Week Syllabus & Competency Checklists...');
   const insertedWeeks = [];
 
@@ -134,17 +95,18 @@ export async function seedProd() {
     insertedWeeks.push(week);
   }
 
-  console.log('✅ [PRODUCTION SEED] Baseline database successfully seeded!');
+  console.log('✅ [PRODUCTION SEED] Clean baseline database ready!');
   console.log(`   - ${insertedClasses.length} Academic Classes`);
   console.log(`   - ${initialAdmins.length} Instructors / Admins`);
-  console.log(`   - ${insertedStudents.length} Whitelisted Students`);
+  console.log(`   - 0 Students (Ready for CSV Import via Web UI)`);
   console.log(`   - ${insertedWeeks.length} Syllabus Weeks with all Topics & Checklists`);
   console.log('   - 0 Dummy Sprints / Dummy Feedback (Clean Slate)');
 
   return {
     classes: insertedClasses,
-    students: insertedStudents,
+    admins: initialAdmins,
     weeks: insertedWeeks,
+    students: [],
   };
 }
 
