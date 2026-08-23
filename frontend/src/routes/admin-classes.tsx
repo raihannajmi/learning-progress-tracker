@@ -15,9 +15,12 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import * as Yup from "yup";
+import { ConfirmModal } from "../components/common/ConfirmModal.js";
+import { DatePicker } from "../components/common/DatePicker.js";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { toast } from "../stores/toastStore.js";
 import type { ClassGroup } from "../types/index.js";
 
 export const Route = createFileRoute("/admin-classes")({
@@ -37,6 +40,7 @@ function AdminClassesPage() {
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingClass, setEditingClass] = useState<ClassGroup | null>(null);
+	const [deletingClass, setDeletingClass] = useState<ClassGroup | null>(null);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -66,11 +70,21 @@ function AdminClassesPage() {
 			const res: any = await api.post("/classes", values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["classes"] });
 			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
 			setIsModalOpen(false);
 			setEditingClass(null);
+			toast.success(
+				"Kelas Berhasil Dibuat",
+				`Kelas "${data?.name || ""}" telah aktif.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Membuat Kelas",
+				err.response?.data?.message || "Terjadi kesalahan server.",
+			);
 		},
 	});
 
@@ -90,11 +104,21 @@ function AdminClassesPage() {
 			const res: any = await api.patch(`/classes/${id}`, values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["classes"] });
 			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
 			setIsModalOpen(false);
 			setEditingClass(null);
+			toast.success(
+				"Kelas Berhasil Diperbarui",
+				`Data kelas "${data?.name || ""}" telah tersimpan.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Memperbarui Kelas",
+				err.response?.data?.message || "Terjadi kesalahan server.",
+			);
 		},
 	});
 
@@ -107,12 +131,19 @@ function AdminClassesPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["classes"] });
 			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
+			setDeletingClass(null);
+			toast.success(
+				"Kelas Berhasil Dihapus",
+				"Data kelas telah dihapus dari sistem.",
+			);
 		},
 		onError: (err: any) => {
-			alert(
+			toast.error(
+				"Tidak Dapat Menghapus Kelas",
 				err.response?.data?.message ||
-					"Gagal menghapus kelas. Pastikan tidak ada mahasiswa terdaftar.",
+					"Pastikan tidak ada mahasiswa yang terdaftar di kelas ini.",
 			);
+			setDeletingClass(null);
 		},
 	});
 
@@ -124,16 +155,6 @@ function AdminClassesPage() {
 	const handleOpenEdit = (cls: ClassGroup) => {
 		setEditingClass(cls);
 		setIsModalOpen(true);
-	};
-
-	const handleDelete = (cls: ClassGroup) => {
-		if (
-			confirm(
-				`Apakah Anda yakin ingin menghapus kelas "${cls.name}"? Tindakan ini tidak dapat dibatalkan.`,
-			)
-		) {
-			deleteClassMutation.mutate(cls.id);
-		}
 	};
 
 	const totalClasses = classesList?.length || 0;
@@ -331,7 +352,7 @@ function AdminClassesPage() {
 
 										<button
 											type="button"
-											onClick={() => handleDelete(cls)}
+											onClick={() => setDeletingClass(cls)}
 											disabled={deleteClassMutation.isPending}
 											className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
 											title="Hapus Kelas"
@@ -346,7 +367,7 @@ function AdminClassesPage() {
 				)}
 			</div>
 
-			{/* 4. Add / Edit Modal */}
+			{/* 4. Add / Edit Modal with Custom DatePicker */}
 			{isModalOpen && (
 				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
 					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
@@ -398,7 +419,7 @@ function AdminClassesPage() {
 								}
 							}}
 						>
-							{({ isSubmitting }) => (
+							{({ values, setFieldValue, isSubmitting }) => (
 								<Form className="space-y-3.5 text-xs">
 									<div>
 										<label className="block font-medium text-slate-700 mb-1">
@@ -436,16 +457,18 @@ function AdminClassesPage() {
 
 									<div>
 										<label className="block font-medium text-slate-700 mb-1">
-											Tanggal Mulai Perkuliahan
+											Tanggal Mulai Perkuliahan Resmi
 										</label>
-										<Field
-											type="date"
-											name="startDate"
-											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+										<DatePicker
+											value={values.startDate}
+											onChange={(dateStr) =>
+												setFieldValue("startDate", dateStr)
+											}
+											placeholder="Pilih Tanggal Mulai (e.g. 19 Agustus 2026)"
 										/>
-										<p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-											Digunakan sebagai acuan perhitungan status keaktifan
-											sprint & deteksi mahasiswa yang perlu perhatian.
+										<p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+											Digunakan sebagai acuan perhitungan toleransi 7 hari
+											keaktifan sprint & deteksi mahasiswa yang perlu perhatian.
 										</p>
 									</div>
 
@@ -484,6 +507,21 @@ function AdminClassesPage() {
 					</div>
 				</div>
 			)}
+
+			{/* 5. Delete Confirm Dialog */}
+			<ConfirmModal
+				isOpen={!!deletingClass}
+				title={`Hapus Kelas "${deletingClass?.name || ""}"?`}
+				description={`Apakah Anda yakin ingin menghapus kelas ini? Tindakan ini tidak dapat dibatalkan.`}
+				confirmText="Ya, Hapus Kelas"
+				cancelText="Batal"
+				variant="danger"
+				isLoading={deleteClassMutation.isPending}
+				onConfirm={() =>
+					deletingClass && deleteClassMutation.mutate(deletingClass.id)
+				}
+				onCancel={() => setDeletingClass(null)}
+			/>
 		</div>
 	);
 }

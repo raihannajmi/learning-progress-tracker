@@ -15,10 +15,11 @@ import {
 	VolumeX,
 	XCircle,
 } from "lucide-react";
-import React, { useState } from "react";
+import { ConfirmModal } from "../components/common/ConfirmModal.js";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { StatCard } from "../components/common/StatCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
@@ -70,6 +71,7 @@ function SprintsPage() {
 	// Local state for setting up next session
 	const [setupTopicId, setSetupTopicId] = useState<string>("");
 	const [setupDurationMinutes, setSetupDurationMinutes] = useState<number>(25);
+	const [isAbandonModalOpen, setIsAbandonModalOpen] = useState(false);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -141,12 +143,6 @@ function SprintsPage() {
 			topic ? `${topic.title}` : null,
 			setupDurationMinutes,
 		);
-	};
-
-	const handleAbandon = () => {
-		if (confirm("Batalkan sesi fokus ini? Progres waktu tidak akan dicatat.")) {
-			abandonSession();
-		}
 	};
 
 	// Timer calculations
@@ -251,33 +247,34 @@ function SprintsPage() {
 						{/* Setup Controls: Target Topic & Duration Presets */}
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
 							{/* Topic Selector */}
-							<div className="md:col-span-2 space-y-2">
+							<div className="md:col-span-2 space-y-1.5">
 								<label className="block text-xs font-semibold text-slate-800">
 									Pilih Topik Silabus yang Akan Dipelajari
 								</label>
-								<select
+								<SelectDropdown
 									value={setupTopicId}
-									onChange={(e) => setSetupTopicId(e.target.value)}
-									className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-								>
-									<option value="">-- Belajar Mandiri / Topik Bebas --</option>
-									{roadmapWeeks?.map((week) => (
-										<optgroup
-											key={week.id}
-											label={`Minggu ${week.weekNumber}: ${week.title}`}
-										>
-											{week.topics.map((t) => (
-												<option key={t.id} value={t.id}>
-													[{t.category}] {t.title}
-												</option>
-											))}
-										</optgroup>
-									))}
-								</select>
+									onChange={(val) => setSetupTopicId(val)}
+									searchable
+									allowClear
+									placeholder="-- Belajar Mandiri / Topik Bebas --"
+									options={[
+										{
+											value: "",
+											label: "-- Belajar Mandiri / Topik Bebas --",
+											badge: "Mandiri",
+										},
+										...allTopics.map((t) => ({
+											value: t.id,
+											label: `[M${t.weekNumber}] ${t.title}`,
+											badge: t.category,
+											description: `Minggu ${t.weekNumber}: ${t.weekTitle}`,
+										})),
+									]}
+								/>
 							</div>
 
 							{/* Duration Presets */}
-							<div className="space-y-2">
+							<div className="space-y-1.5">
 								<label className="block text-xs font-semibold text-slate-800">
 									Target Durasi Fokus
 								</label>
@@ -431,7 +428,7 @@ function SprintsPage() {
 
 							<button
 								type="button"
-								onClick={handleAbandon}
+								onClick={() => setIsAbandonModalOpen(true)}
 								className="px-3.5 py-2 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
 							>
 								<XCircle size={14} />
@@ -520,6 +517,21 @@ function SprintsPage() {
 					/>
 				)}
 			</div>
+
+			{/* Abandon Session Confirm Dialog */}
+			<ConfirmModal
+				isOpen={isAbandonModalOpen}
+				title="Batalkan Sesi Fokus?"
+				description="Progres waktu pada sesi fokus ini tidak akan dicatat ke riwayat sprint Anda."
+				confirmText="Ya, Batalkan Sesi"
+				cancelText="Lanjutkan Belajar"
+				variant="warning"
+				onConfirm={() => {
+					setIsAbandonModalOpen(false);
+					abandonSession();
+				}}
+				onCancel={() => setIsAbandonModalOpen(false)}
+			/>
 		</div>
 	);
 }

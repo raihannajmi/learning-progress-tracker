@@ -4,11 +4,12 @@ import {
 	useNavigate,
 	useSearch,
 } from "@tanstack/react-router";
-import { Filter, HelpCircle, MessageSquare } from "lucide-react";
+import { HelpCircle, MessageSquare } from "lucide-react";
 import React from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
 import { PeerFeedbackCard } from "../components/common/PeerFeedbackCard.js";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import type {
@@ -147,25 +148,26 @@ function ClassFeedPage() {
 				</div>
 
 				{/* Class Selector Dropdown */}
-				<div className="flex items-center gap-2 shrink-0 bg-white px-3 py-1.5 rounded-lg border border-slate-200/90 text-xs">
-					<Filter size={13} className="text-slate-400" />
-					<select
+				<div className="w-56 shrink-0">
+					<SelectDropdown
 						value={selectedClassId}
-						onChange={(e) =>
+						onChange={(val) =>
 							updateFilters({
-								classId: e.target.value || undefined,
+								classId: val || undefined,
 								page: 1,
 							})
 						}
-						className="text-xs font-medium text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
-					>
-						<option value="">Semua Kelas</option>
-						{classesList?.map((cls) => (
-							<option key={cls.id} value={cls.id}>
-								{cls.name} ({cls.studentCount || 0} Mahasiswa)
-							</option>
-						))}
-					</select>
+						placeholder="Semua Kelas Mahasiswa"
+						allowClear
+						options={[
+							{ value: "", label: "Semua Kelas Mahasiswa" },
+							...(classesList?.map((cls) => ({
+								value: cls.id,
+								label: cls.name,
+								badge: `${cls.studentCount || 0} mhs`,
+							})) || []),
+						]}
+					/>
 				</div>
 			</div>
 

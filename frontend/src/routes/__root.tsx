@@ -11,6 +11,7 @@ import type React from "react";
 import { useState } from "react";
 import { ActiveSessionBanner } from "../components/common/ActiveSessionBanner.js";
 import { SprintModal } from "../components/common/SprintModal.js";
+import { ToastContainer } from "../components/common/ToastContainer.js";
 import { AppHeader } from "../components/layout/AppHeader.js";
 import { AppSidebar } from "../components/layout/AppSidebar.js";
 import { useAuthStore } from "../stores/authStore.js";
@@ -159,6 +160,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<QueryClientProvider client={queryClient}>
 					<GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
 						<LayoutContainer>{children}</LayoutContainer>
+						<ToastContainer />
 					</GoogleOAuthProvider>
 				</QueryClientProvider>
 				<Scripts />

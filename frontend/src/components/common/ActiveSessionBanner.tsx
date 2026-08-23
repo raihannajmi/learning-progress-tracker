@@ -8,10 +8,12 @@ import {
 	XCircle,
 } from "lucide-react";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTimerStore } from "../../stores/timerStore.js";
+import { ConfirmModal } from "./ConfirmModal.js";
 
 export const ActiveSessionBanner: React.FC = () => {
+	const [isAbandonModalOpen, setIsAbandonModalOpen] = useState(false);
 	const {
 		status,
 		targetSeconds,
@@ -51,16 +53,6 @@ export const ActiveSessionBanner: React.FC = () => {
 	const formattedElapsed = `${String(elapsedMinutes).padStart(2, "0")}:${String(elapsedSecs).padStart(2, "0")}`;
 
 	const isHabitQualified = elapsedMinutes >= 25;
-
-	const handleAbandon = () => {
-		if (
-			confirm(
-				"Batalkan sesi fokus ini? Progres waktu sesi ini tidak akan dicatat.",
-			)
-		) {
-			abandonSession();
-		}
-	};
 
 	return (
 		<div className="bg-slate-900 text-white px-4 py-2.5 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-2 duration-200">
@@ -159,7 +151,7 @@ export const ActiveSessionBanner: React.FC = () => {
 
 					<button
 						type="button"
-						onClick={handleAbandon}
+						onClick={() => setIsAbandonModalOpen(true)}
 						className="p-1.5 rounded-md hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
 						title="Batalkan Sesi"
 					>
@@ -167,6 +159,20 @@ export const ActiveSessionBanner: React.FC = () => {
 					</button>
 				</div>
 			</div>
+
+			<ConfirmModal
+				isOpen={isAbandonModalOpen}
+				title="Batalkan Sesi Fokus?"
+				description="Progres waktu pada sesi fokus ini tidak akan dicatat ke riwayat sprint Anda."
+				confirmText="Ya, Batalkan Sesi"
+				cancelText="Lanjutkan Belajar"
+				variant="warning"
+				onConfirm={() => {
+					setIsAbandonModalOpen(false);
+					abandonSession();
+				}}
+				onCancel={() => setIsAbandonModalOpen(false)}
+			/>
 		</div>
 	);
 };

@@ -4,13 +4,13 @@ import {
 	AlertCircle,
 	ArrowRight,
 	ExternalLink,
-	Filter,
 	HelpCircle,
 	MessageSquare,
 	Timer,
 	Users,
 } from "lucide-react";
 import React, { useState } from "react";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { StatCard } from "../components/common/StatCard.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
@@ -95,20 +95,21 @@ function AdminDashboardPage() {
 				</div>
 
 				{/* Class Filter Selector */}
-				<div className="flex items-center gap-2 shrink-0 bg-white px-3 py-1.5 rounded-lg border border-slate-200/90 text-xs">
-					<Filter size={13} className="text-slate-400" />
-					<select
+				<div className="w-56 shrink-0">
+					<SelectDropdown
 						value={selectedClassId}
-						onChange={(e) => setSelectedClassId(e.target.value)}
-						className="text-xs font-medium text-slate-800 bg-transparent border-0 focus:ring-0 cursor-pointer pr-4"
-					>
-						<option value="">Semua Kelas</option>
-						{classesList?.map((cls) => (
-							<option key={cls.id} value={cls.id}>
-								{cls.name}
-							</option>
-						))}
-					</select>
+						onChange={(val) => setSelectedClassId(val)}
+						placeholder="Semua Kelas Mahasiswa"
+						allowClear
+						options={[
+							{ value: "", label: "Semua Kelas Mahasiswa" },
+							...(classesList?.map((cls) => ({
+								value: cls.id,
+								label: cls.name,
+								badge: cls.academicTerm,
+							})) || []),
+						]}
+					/>
 				</div>
 			</div>
 

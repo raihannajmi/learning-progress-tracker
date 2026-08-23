@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import {
-	AlertTriangle,
 	ArrowDown,
 	ArrowUp,
 	ArrowUpDown,
@@ -19,9 +18,12 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import * as Yup from "yup";
+import { ConfirmModal } from "../components/common/ConfirmModal.js";
 import { EmptyState } from "../components/common/EmptyState.js";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { toast } from "../stores/toastStore.js";
 import type { ChecklistItem, RoadmapWeek, Topic } from "../types/index.js";
 
 export const Route = createFileRoute("/admin-roadmap")({
@@ -125,9 +127,19 @@ function AdminRoadmapPage() {
 			const res: any = await api.post("/admin/roadmap/weeks", values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setWeekModalData({ isOpen: false, week: null });
+			toast.success(
+				"Minggu Silabus Dibuat",
+				`Minggu ${data.weekNumber}: ${data.title} berhasil ditambahkan.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Membuat Minggu",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -136,9 +148,19 @@ function AdminRoadmapPage() {
 			const res: any = await api.patch(`/admin/roadmap/weeks/${id}`, values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setWeekModalData({ isOpen: false, week: null });
+			toast.success(
+				"Minggu Silabus Diperbarui",
+				`Data Minggu ${data?.weekNumber || ""} berhasil disimpan.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Memperbarui Minggu",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -154,6 +176,16 @@ function AdminRoadmapPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setIsReorderModalOpen(false);
+			toast.success(
+				"Urutan Silabus Disimpan",
+				"Roadmap mahasiswa dan kurikulum telah diperbarui.",
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Mengubah Urutan",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -196,8 +228,12 @@ function AdminRoadmapPage() {
 			);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
+			toast.success(
+				"Minggu Berjalan Aktif",
+				`Minggu ${data?.weekNumber || ""} sekarang menjadi minggu aktif.`,
+			);
 		},
 	});
 
@@ -206,9 +242,19 @@ function AdminRoadmapPage() {
 			const res: any = await api.post("/admin/roadmap/topics", values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setTopicModalData({ isOpen: false, weekId: "", topic: null });
+			toast.success(
+				"Topik Ditambahkan",
+				`Topik "${data?.title || ""}" berhasil dibuat.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Menambahkan Topik",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -217,9 +263,19 @@ function AdminRoadmapPage() {
 			const res: any = await api.patch(`/admin/roadmap/topics/${id}`, values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setTopicModalData({ isOpen: false, weekId: "", topic: null });
+			toast.success(
+				"Topik Diperbarui",
+				`Topik "${data?.title || ""}" berhasil disimpan.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Memperbarui Topik",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -231,6 +287,16 @@ function AdminRoadmapPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setChecklistModalData({ isOpen: false, topicId: "", checklist: null });
+			toast.success(
+				"Checklist Ditambahkan",
+				"Butir penilaian mandiri berhasil dibuat.",
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Menambahkan Checklist",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -245,6 +311,16 @@ function AdminRoadmapPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setChecklistModalData({ isOpen: false, topicId: "", checklist: null });
+			toast.success(
+				"Checklist Diperbarui",
+				"Pernyataan mandiri telah disimpan.",
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Memperbarui Checklist",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -258,6 +334,13 @@ function AdminRoadmapPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["roadmap"] });
 			setDeleteModalData({ isOpen: false, type: "WEEK", id: "", name: "" });
+			toast.success("Item Dihapus", "Data silabus telah dihapus.");
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Menghapus",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -852,17 +935,30 @@ function AdminRoadmapPage() {
 											<label className="block text-xs font-medium text-slate-700 mb-1">
 												Kategori Materi
 											</label>
-											<Field
-												as="select"
-												name="category"
-												className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
-											>
-												<option value="HTML">HTML</option>
-												<option value="CSS">CSS</option>
-												<option value="JAVASCRIPT">JavaScript</option>
-												<option value="BACKEND">Backend</option>
-												<option value="FULLSTACK">Fullstack</option>
-											</Field>
+											<SelectDropdown
+												value={values.category}
+												onChange={(val) => setFieldValue("category", val)}
+												placeholder="Pilih Kategori"
+												options={[
+													{ value: "HTML", label: "HTML", badge: "Frontend" },
+													{ value: "CSS", label: "CSS", badge: "Frontend" },
+													{
+														value: "JAVASCRIPT",
+														label: "JavaScript",
+														badge: "Frontend",
+													},
+													{
+														value: "BACKEND",
+														label: "Backend",
+														badge: "Server",
+													},
+													{
+														value: "FULLSTACK",
+														label: "Fullstack",
+														badge: "Integrated",
+													},
+												]}
+											/>
 										</div>
 
 										<div>
@@ -1012,56 +1108,36 @@ function AdminRoadmapPage() {
 				</div>
 			)}
 
-			{/* Delete Confirmation Dialog Modal */}
-			{deleteModalData.isOpen && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-					<div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg border border-slate-200 text-center">
-						<div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
-							<AlertTriangle size={20} />
-						</div>
-						<h3 className="text-sm font-semibold text-slate-900">
-							Konfirmasi Hapus
-						</h3>
-						<p className="text-xs text-slate-600 mt-1 leading-relaxed">
-							Apakah Anda yakin ingin menghapus{" "}
-							<strong>"{deleteModalData.name}"</strong>?
-						</p>
-						<p className="text-[11px] text-rose-600 mt-1">
-							Tindakan ini tidak dapat dibatalkan.
-						</p>
-
-						<div className="flex justify-center gap-2 mt-5">
-							<button
-								type="button"
-								onClick={() =>
-									setDeleteModalData({
-										isOpen: false,
-										type: "WEEK",
-										id: "",
-										name: "",
-									})
-								}
-								className="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-							>
-								Batal
-							</button>
-							<button
-								type="button"
-								onClick={() =>
-									deleteMutation.mutate({
-										type: deleteModalData.type,
-										id: deleteModalData.id,
-									})
-								}
-								disabled={deleteMutation.isPending}
-								className="px-4 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs disabled:opacity-50 cursor-pointer"
-							>
-								{deleteMutation.isPending ? "Menghapus..." : "Ya, Hapus"}
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
+			{/* 5. Delete Confirmation Modal */}
+			<ConfirmModal
+				isOpen={deleteModalData.isOpen}
+				title={`Hapus ${
+					deleteModalData.type === "WEEK"
+						? "Minggu Silabus"
+						: deleteModalData.type === "TOPIC"
+							? "Topik Materi"
+							: "Butir Checklist"
+				}?`}
+				description={`Apakah Anda yakin ingin menghapus "${deleteModalData.name}"? Tindakan ini tidak dapat dibatalkan.`}
+				confirmText="Ya, Hapus"
+				cancelText="Batal"
+				variant="danger"
+				isLoading={deleteMutation.isPending}
+				onConfirm={() =>
+					deleteMutation.mutate({
+						type: deleteModalData.type,
+						id: deleteModalData.id,
+					})
+				}
+				onCancel={() =>
+					setDeleteModalData({
+						isOpen: false,
+						type: "WEEK",
+						id: "",
+						name: "",
+					})
+				}
+			/>
 
 			{/* 6. Reorder Weeks Modal */}
 			{isReorderModalOpen && (

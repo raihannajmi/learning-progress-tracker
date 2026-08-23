@@ -17,11 +17,14 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import * as Yup from "yup";
+import { ConfirmModal } from "../components/common/ConfirmModal.js";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { Pagination } from "../components/common/Pagination.js";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { StudentDetailModal } from "../components/common/StudentDetailModal.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { toast } from "../stores/toastStore.js";
 import type { ClassGroup, PaginatedResponse, User } from "../types/index.js";
 
 interface StudentSearchParams {
@@ -80,6 +83,7 @@ function AdminStudentsPage() {
 	const [batchClassId, setBatchClassId] = useState("");
 	const [batchText, setBatchText] = useState("");
 	const [inspectedStudent, setInspectedStudent] = useState<any | null>(null);
+	const [deletingStudent, setDeletingStudent] = useState<User | null>(null);
 	const [batchResult, setBatchResult] = useState<{
 		added: number;
 		skipped: number;
@@ -172,9 +176,20 @@ function AdminStudentsPage() {
 			const res: any = await api.post("/admin/students", values);
 			return res.data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["adminStudents"] });
+			queryClient.invalidateQueries({ queryKey: ["classes"] });
 			setIsAddModalOpen(false);
+			toast.success(
+				"Mahasiswa Berhasil Ditambahkan",
+				`${data?.name || "Mahasiswa"} telah didaftarkan ke whitelist.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Menambahkan Mahasiswa",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
 		},
 	});
 
@@ -198,6 +213,16 @@ function AdminStudentsPage() {
 			queryClient.invalidateQueries({ queryKey: ["classes"] });
 			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
 			setBatchResult(data);
+			toast.success(
+				"Impor Batch Berhasil",
+				`${data.added} mahasiswa berhasil diproses.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Impor Batch",
+				err.response?.data?.message || "Format data tidak valid.",
+			);
 		},
 	});
 
@@ -209,13 +234,27 @@ function AdminStudentsPage() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["adminStudents"] });
+			queryClient.invalidateQueries({ queryKey: ["classes"] });
+			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
+			setDeletingStudent(null);
+			toast.success("Mahasiswa Dihapus", "Akun telah dihapus dari whitelist.");
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Menghapus Mahasiswa",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
+			setDeletingStudent(null);
 		},
 	});
 
 	const handleBatchParseAndSubmit = () => {
 		const raw = batchText.trim();
 		if (!raw) {
-			alert("Masukkan atau unggah data mahasiswa terlebih dahulu!");
+			toast.warning(
+				"Data Belum Diisi",
+				"Masukkan atau unggah data mahasiswa terlebih dahulu!",
+			);
 			return;
 		}
 
@@ -256,7 +295,7 @@ function AdminStudentsPage() {
 						};
 					});
 			} catch (e: any) {
-				alert(`Format JSON tidak valid: ${e.message}`);
+				toast.error("Format JSON Tidak Valid", e.message);
 				return;
 			}
 		} else {
@@ -311,8 +350,9 @@ function AdminStudentsPage() {
 		}
 
 		if (parsedStudents.length === 0) {
-			alert(
-				"Format data tidak valid! Gunakan format JSON array atau CSV (Nama, Email, NIM).",
+			toast.error(
+				"Format Data Tidak Valid",
+				"Gunakan format JSON array atau CSV (Nama, Email, NIM).",
 			);
 			return;
 		}
@@ -397,25 +437,26 @@ function AdminStudentsPage() {
 							className="w-full pl-9 pr-3.5 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
 						/>
 					</div>
-
 					<div>
-						<select
+						<SelectDropdown
 							value={selectedClassFilter}
-							onChange={(e) =>
+							onChange={(val) =>
 								updateFilters({
-									classId: e.target.value || undefined,
+									classId: val || undefined,
 									page: 1,
 								})
 							}
-							className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-						>
-							<option value="">-- Semua Kelas Mahasiswa --</option>
-							{classesList?.map((c) => (
-								<option key={c.id} value={c.id}>
-									{c.name} ({c.academicTerm})
-								</option>
-							))}
-						</select>
+							placeholder="Semua Kelas Mahasiswa"
+							allowClear
+							options={[
+								{ value: "", label: "Semua Kelas Mahasiswa" },
+								...(classesList?.map((c) => ({
+									value: c.id,
+									label: c.name,
+									badge: c.academicTerm,
+								})) || []),
+							]}
+						/>
 					</div>
 				</div>
 			</div>
@@ -488,15 +529,8 @@ function AdminStudentsPage() {
 												</button>
 												<button
 													type="button"
-													onClick={() => {
-														if (
-															confirm(
-																`Hapus akses mahasiswa ${student.name}? Data sprint & checklist akan ikut terhapus.`,
-															)
-														) {
-															deleteStudentMutation.mutate(student.id);
-														}
-													}}
+													onClick={() => setDeletingStudent(student)}
+													disabled={deleteStudentMutation.isPending}
 													className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
 													title="Hapus Mahasiswa"
 												>
@@ -622,18 +656,18 @@ function AdminStudentsPage() {
 										<label className="block font-medium text-slate-700 mb-1">
 											Kelas Perkuliahan *
 										</label>
-										<Field
-											as="select"
-											name="classId"
-											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
-										>
-											<option value="">-- Pilih Kelas --</option>
-											{classesList?.map((c) => (
-												<option key={c.id} value={c.id}>
-													{c.name} ({c.academicTerm})
-												</option>
-											))}
-										</Field>
+										<SelectDropdown
+											value={values.classId}
+											onChange={(val) => setFieldValue("classId", val)}
+											placeholder="-- Pilih Kelas Perkuliahan --"
+											options={
+												classesList?.map((c) => ({
+													value: c.id,
+													label: c.name,
+													badge: c.academicTerm,
+												})) || []
+											}
+										/>
 										<ErrorMessage
 											name="classId"
 											component="div"
@@ -736,20 +770,23 @@ function AdminStudentsPage() {
 										Pilih Kelas Target (Opsional jika data JSON memiliki
 										`className`)
 									</label>
-									<select
+									<SelectDropdown
 										value={batchClassId}
-										onChange={(e) => setBatchClassId(e.target.value)}
-										className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
-									>
-										<option value="">
-											-- Otomatis Dari Data / Pilih Kelas --
-										</option>
-										{classesList?.map((c) => (
-											<option key={c.id} value={c.id}>
-												{c.name} ({c.academicTerm})
-											</option>
-										))}
-									</select>
+										onChange={(val) => setBatchClassId(val)}
+										placeholder="-- Otomatis Dari Data / Pilih Kelas --"
+										allowClear
+										options={[
+											{
+												value: "",
+												label: "-- Otomatis Dari Data / Pilih Kelas --",
+											},
+											...(classesList?.map((c) => ({
+												value: c.id,
+												label: c.name,
+												badge: c.academicTerm,
+											})) || []),
+										]}
+									/>
 								</div>
 
 								<div>
@@ -812,6 +849,21 @@ function AdminStudentsPage() {
 					student={inspectedStudent}
 				/>
 			)}
+
+			{/* 7. Delete Confirm Dialog */}
+			<ConfirmModal
+				isOpen={!!deletingStudent}
+				title={`Hapus Mahasiswa "${deletingStudent?.name || ""}"?`}
+				description={`Data log sprint, checklist progress, dan review untuk mahasiswa ini akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.`}
+				confirmText="Ya, Hapus Mahasiswa"
+				cancelText="Batal"
+				variant="danger"
+				isLoading={deleteStudentMutation.isPending}
+				onConfirm={() =>
+					deletingStudent && deleteStudentMutation.mutate(deletingStudent.id)
+				}
+				onCancel={() => setDeletingStudent(null)}
+			/>
 		</div>
 	);
 }

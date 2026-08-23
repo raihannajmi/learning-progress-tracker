@@ -19,8 +19,10 @@ import React, { useEffect, useState } from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
 import { HabitBadge } from "../components/common/HabitBadge.js";
 import { Pagination } from "../components/common/Pagination.js";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { toast } from "../stores/toastStore.js";
 import type {
 	ClassGroup,
 	PaginatedResponse,
@@ -170,12 +172,17 @@ function AdminReviewPage() {
 			setSelectedSprintForReview(null);
 			setFeedbackText("");
 			setFeedbackError(null);
+			toast.success(
+				"Feedback Terkirim",
+				"Catatan review pedagogis telah dikirimkan ke mahasiswa.",
+			);
 		},
 		onError: (err: any) => {
-			setFeedbackError(
+			const msg =
 				err.response?.data?.error?.message ||
-					"Gagal mengirim feedback asistensi.",
-			);
+				"Gagal mengirim feedback asistensi.";
+			setFeedbackError(msg);
+			toast.error("Gagal Mengirim Feedback", msg);
 		},
 	});
 
@@ -297,20 +304,22 @@ function AdminReviewPage() {
 					</div>
 
 					<div>
-						<select
+						<SelectDropdown
 							value={selectedClassId}
-							onChange={(e) =>
-								updateFilters({ classId: e.target.value || undefined, page: 1 })
+							onChange={(val) =>
+								updateFilters({ classId: val || undefined, page: 1 })
 							}
-							className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-						>
-							<option value="">-- Semua Kelas Mahasiswa --</option>
-							{classGroups?.map((cg) => (
-								<option key={cg.id} value={cg.id}>
-									{cg.name} ({cg.academicTerm})
-								</option>
-							))}
-						</select>
+							placeholder="Semua Kelas Mahasiswa"
+							allowClear
+							options={[
+								{ value: "", label: "Semua Kelas Mahasiswa" },
+								...(classGroups?.map((cg) => ({
+									value: cg.id,
+									label: cg.name,
+									badge: cg.academicTerm,
+								})) || []),
+							]}
+						/>
 					</div>
 				</div>
 			</div>
