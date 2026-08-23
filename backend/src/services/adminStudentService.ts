@@ -123,6 +123,8 @@ export class AdminStudentService {
       name: string;
       email: string;
       nim: string;
+      classId?: string;
+      className?: string;
       githubRepoUrl?: string;
       githubPageUrl?: string;
     }>
@@ -133,8 +135,18 @@ export class AdminStudentService {
       errors: [] as string[],
     };
 
+    const dbClasses = await db.select().from(classes);
+    const classMap = new Map<string, string>();
+    dbClasses.forEach((c) => classMap.set(c.name, c.id));
+
     for (const student of studentList) {
       try {
+        const targetClassId =
+          student.classId ||
+          (student.className ? classMap.get(student.className) : undefined) ||
+          classId ||
+          dbClasses[0]?.id;
+
         const [existing] = await db
           .select()
           .from(users)
@@ -147,14 +159,16 @@ export class AdminStudentService {
           continue;
         }
 
+        const username = student.email.split('@')[0];
+
         await db.insert(users).values({
-          name: student.name,
-          email: student.email.toLowerCase(),
-          nim: student.nim,
+          name: student.name.trim(),
+          email: student.email.trim().toLowerCase(),
+          nim: student.nim.trim(),
           role: 'STUDENT',
-          classId: classId,
-          githubRepoUrl: student.githubRepoUrl || null,
-          githubPageUrl: student.githubPageUrl || null,
+          classId: targetClassId,
+          githubRepoUrl: student.githubRepoUrl || `https://github.com/${username}/webdev-portfolio`,
+          githubPageUrl: student.githubPageUrl || `https://${username}.github.io/webdev-portfolio`,
         });
 
         results.added++;

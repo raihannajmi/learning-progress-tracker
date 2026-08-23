@@ -24,7 +24,7 @@ graph LR
 1. Buka dashboard Easypanel $\rightarrow$ Buat **Project** (e.g. `learning-tracker`).
 2. Klik **+ Service** $\rightarrow$ Pilih **Database: PostgreSQL**.
 3. Buat service (e.g. name: `postgres-db`).
-4. Catat Connection String internal yang diberikan oleh Easypanel (contoh: `postgres://postgres:password@postgres-db:5432/learning_tracker`).
+4. Catat Connection String internal yang diberikan oleh Easypanel (contoh: `postgres://postgres:password@postgres-db:5432/learning_tracker?sslmode=disable`).
 
 ---
 
@@ -40,7 +40,7 @@ graph LR
 | :--- | :--- | :--- |
 | `NODE_ENV` | `production` | Mode produksi |
 | `PORT` | `5001` | Port container |
-| `DATABASE_URL` | `postgres://postgres:pass@postgres-db:5432/learning_tracker` | URL koneksi ke service Postgres Easypanel |
+| `DATABASE_URL` | `postgres://postgres:pass@postgres-db:5432/learning_tracker?sslmode=disable` | URL koneksi ke service Postgres Easypanel |
 | `JWT_SECRET` | `generate-random-secret-key-32-chars-minimum` | Kunci enkripsi token login |
 | `GOOGLE_CLIENT_ID` | `your-id.apps.googleusercontent.com` | Google OAuth Web Client ID |
 | `CLIENT_URL` | `https://learningtracker.netlify.app` | URL domain Frontend Anda di Netlify (untuk CORS) |
@@ -50,32 +50,33 @@ graph LR
 
 ---
 
-## 3. Cara Memasukkan Mahasiswa di Production (Easypanel)
+## 3. Cara Memasukkan Mahasiswa (Import JSON / CSV)
 
-Ada **2 cara mudah dan fleksibel** untuk memasukkan 92+ mahasiswa ke sistem:
+Ada **2 cara mudah dan fleksibel** untuk memasukkan file `students.private.json` ke production:
 
-### Cara 1: Lewat Web UI Admin Panel (Paling Mudah & Praktis ⭐)
-1. Buka website Anda yang sudah live, lalu login dengan Google menggunakan email Dosen/Admin (`najmiraihanworks@gmail.com`).
+### Cara 1: Lewat Web UI Admin Panel (Paling Cepat & Praktis ⭐)
+1. Login ke website Anda dengan Google menggunakan email Dosen/Admin (`najmiraihanworks@gmail.com`).
 2. Masuk ke menu **Kelola Mahasiswa** (`/admin-students`).
 3. Klik tombol **[Impor Batch CSV]**.
-4. Paste daftar mahasiswa dari file spreadsheet/format CSV:
-   ```csv
-   email,name,nim,className
-   mahasiswa1@students.univ.ac.id,Nama Mahasiswa 1,2504140001,"Rabu, Jam 10 DC 3A"
-   mahasiswa2@students.univ.ac.id,Nama Mahasiswa 2,2504140002,"Kamis, Jam 7 D1 327"
+4. Klik tombol **[Pilih File (.json / .csv)]** dan pilih file `students.private.json` Anda, **ATAU** langsung *copy-paste* teks JSON array berikut:
+   ```json
+   [
+     {"email": "muhammadzahi006@students.unnes.ac.id", "name": "Muhammad Zahi Ustadzi", "nim": "250414006", "className": "Rabu, Jam 10 DC 3A"},
+     {"email": "yunamikanda06@students.unnes.ac.id", "name": "Yun Sabarina Mikanda", "nim": "2404140001", "className": "Kamis, Jam 7 D1 327"}
+   ]
    ```
-5. Klik **[Verifikasi & Simpan Mahasiswa]** $\rightarrow$ Semua mahasiswa otomatis tersimpan ke PostgreSQL!
+5. Modal akan otomatis mendeteksi format **JSON Array** dan otomatis mencocokkan tiap mahasiswa ke kelas yang sesuai berdasarkan `className`!
+6. Klik **[Proses Impor Mahasiswa]** $\rightarrow$ Semua mahasiswa langsung aktif terdaftar di PostgreSQL!
 
 ---
 
-### Cara 2: Lewat Terminal Easypanel (Inisialisasi Seed Langsung)
+### Cara 2: Lewat Terminal Easypanel (CLI Import)
 1. Di Easypanel, buka service **Backend App** $\rightarrow$ Tab **Console / Terminal**.
-2. Jalankan perintah migrasi & seed resmi:
+2. Jalankan perintah migrasi & import langsung:
    ```bash
-   pnpm db:migrate
-   pnpm db:seed:prod
+   node dist/db/seed-students.js
    ```
-3. Database akan otomatis terisi dengan 2 Kelas Akademik, Akun Admin Dosen, dan Silabus Kurikulum 8 Minggu tanpa data dummy!
+   *(Atau `pnpm db:import:students:prod`)*
 
 ---
 
@@ -90,7 +91,7 @@ Ada **2 cara mudah dan fleksibel** untuk memasukkan 92+ mahasiswa ke sistem:
 
 | Variabel | Nilai |
 | :--- | :--- |
-| `VITE_API_URL` | `https://api.domainanda.com/api` *(URL backend Easypanel Anda)* |
+| `VITE_API_URL` | `https://api.domainanda.com/api/v1` *(URL backend Easypanel Anda)* |
 | `VITE_GOOGLE_CLIENT_ID` | `your-id.apps.googleusercontent.com` |
 
 4. Klik **Deploy site**.
@@ -99,19 +100,3 @@ Ada **2 cara mudah dan fleksibel** untuk memasukkan 92+ mahasiswa ke sistem:
 > [!TIP]
 > **Keamanan UI Login di Production:**  
 > Komponen simulasi akun demo (Dev Mode) telah diproteksi dengan `import.meta.env.DEV`. Saat dibuild dan di-deploy ke Netlify, kotak simulasi demo **otomatis hilang total**, sehingga mahasiswa hanya melihat tombol resmi **"Sign in with Google"**!
-
----
-
-## 5. Disiplin Database Migration (Drizzle)
-
-Setiap kali Anda mengubah struktur tabel di `backend/src/db/schema.ts`:
-1. Buat file migrasi SQL baru:
-   ```bash
-   pnpm db:generate
-   ```
-   *(File SQL otomatis dibuat dan tercatat versinya di `backend/drizzle/`)*
-2. Terapkan migrasi ke database:
-   ```bash
-   pnpm db:migrate
-   ```
-3. Commit folder `backend/drizzle/` ke Git repository.

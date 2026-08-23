@@ -11,6 +11,7 @@ import {
 	Plus,
 	Search,
 	Trash2,
+	Upload,
 	UserCheck,
 	X,
 } from "lucide-react";
@@ -103,24 +104,23 @@ function AdminStudentsPage() {
 		const timer = setTimeout(() => {
 			if (searchInput !== currentSearch) {
 				navigate({
-					search: (prev) => ({
-						...prev,
+					to: "/admin-students",
+					search: {
+						...searchParams,
 						search: searchInput.trim() || undefined,
 						page: 1,
-					}),
+					},
 				});
 			}
 		}, 350);
 
 		return () => clearTimeout(timer);
-	}, [searchInput, currentSearch, navigate]);
+	}, [searchInput, currentSearch, navigate, searchParams]);
 
 	const updateFilters = (updates: Partial<StudentSearchParams>) => {
 		navigate({
-			search: (prev) => ({
-				...prev,
-				...updates,
-			}),
+			to: "/admin-students",
+			search: { ...searchParams, ...updates },
 		});
 	};
 
@@ -211,37 +211,128 @@ function AdminStudentsPage() {
 	});
 
 	const handleBatchParseAndSubmit = () => {
-		if (!batchClassId) {
-			alert("Pilih kelas terlebih dahulu!");
+		const raw = batchText.trim();
+		if (!raw) {
+			alert("Masukkan atau unggah data mahasiswa terlebih dahulu!");
 			return;
 		}
-		const lines = batchText.split("\n").filter((l) => l.trim().length > 0);
-		const parsedStudents: any[] = [];
 
-		for (const line of lines) {
-			const parts = line.split(/[,\t|]/).map((p) => p.trim());
-			if (parts.length >= 3) {
-				parsedStudents.push({
-					name: parts[0],
-					email: parts[1],
-					nim: parts[2],
-					githubRepoUrl: parts[3] || undefined,
-					githubPageUrl: parts[4] || undefined,
-				});
+		let parsedStudents: any[] = [];
+		const classMap = new Map<string, string>();
+		classesList?.forEach((c) => {
+			classMap.set(c.name.trim().toLowerCase(), c.id);
+			classMap.set(c.id, c.id);
+		});
+		const fallbackClassId = batchClassId || classesList?.[0]?.id || "";
+
+		// 1. Try parsing as JSON array
+		if (raw.startsWith("[") || raw.startsWith("{")) {
+			try {
+				const json = JSON.parse(raw);
+				const list = Array.isArray(json) ? json : [json];
+				parsedStudents = list
+					.filter((item: any) => item && (item.email || item.name))
+					.map((item: any) => {
+						const normClass = item.className
+							? String(item.className).trim().toLowerCase()
+							: "";
+						const resolvedClassId =
+							(normClass ? classMap.get(normClass) : undefined) ||
+							item.classId ||
+							fallbackClassId;
+
+						return {
+							name: String(item.name || item.nama || "").trim(),
+							email: String(item.email || "")
+								.trim()
+								.toLowerCase(),
+							nim: String(item.nim || "").trim(),
+							classId: resolvedClassId,
+							className: item.className,
+							githubRepoUrl: item.githubRepoUrl || undefined,
+							githubPageUrl: item.githubPageUrl || undefined,
+						};
+					});
+			} catch (e: any) {
+				alert(`Format JSON tidak valid: ${e.message}`);
+				return;
+			}
+		} else {
+			// 2. Parse as CSV / TSV / Semicolon-delimited
+			const lines = raw
+				.split("\n")
+				.map((l) => l.trim())
+				.filter((l) => l.length > 0);
+
+			for (const line of lines) {
+				// Skip headers
+				const lower = line.toLowerCase();
+				if (
+					lower.includes("email") &&
+					lower.includes("nama") &&
+					lower.includes("nim")
+				) {
+					continue;
+				}
+
+				const parts = line
+					.split(/[,\t;|]/)
+					.map((p) => p.trim().replace(/^["']|["']$/g, ""));
+				if (parts.length >= 3) {
+					// Check if parts[0] is email vs name
+					let name = parts[0];
+					let email = parts[1];
+					let nim = parts[2];
+					let className = parts[3];
+
+					if (parts[0].includes("@")) {
+						email = parts[0];
+						name = parts[1];
+						nim = parts[2];
+						className = parts[3];
+					}
+
+					const normClass = className ? className.trim().toLowerCase() : "";
+					const resolvedClassId =
+						(normClass ? classMap.get(normClass) : undefined) ||
+						fallbackClassId;
+
+					parsedStudents.push({
+						name,
+						email: email.toLowerCase(),
+						nim,
+						classId: resolvedClassId,
+						className,
+					});
+				}
 			}
 		}
 
 		if (parsedStudents.length === 0) {
 			alert(
-				"Format baris tidak valid! Gunakan format: Nama, Email, NIM per baris.",
+				"Format data tidak valid! Gunakan format JSON array atau CSV (Nama, Email, NIM).",
 			);
 			return;
 		}
 
 		batchAddMutation.mutate({
-			classId: batchClassId,
+			classId: batchClassId || parsedStudents[0]?.classId || fallbackClassId,
 			studentsList: parsedStudents,
 		});
+	};
+
+	const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = (event) => {
+			const content = event.target?.result as string;
+			if (content) {
+				setBatchText(content);
+			}
+		};
+		reader.readAsText(file);
 	};
 
 	return (
@@ -622,16 +713,35 @@ function AdminStudentsPage() {
 							</div>
 						) : (
 							<div className="space-y-3.5 text-xs">
+								<div className="flex items-center justify-between">
+									<label className="block font-medium text-slate-700">
+										Unggah Berkas / Paste Data
+									</label>
+									<label className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 cursor-pointer bg-blue-50 px-2 py-1 rounded-md border border-blue-200 transition-colors">
+										<Upload size={12} />
+										<span>Pilih File (.json / .csv)</span>
+										<input
+											type="file"
+											accept=".json,.csv,.txt"
+											onChange={handleFileUpload}
+											className="hidden"
+										/>
+									</label>
+								</div>
+
 								<div>
 									<label className="block font-medium text-slate-700 mb-1">
-										Pilih Kelas Target *
+										Pilih Kelas Target (Opsional jika data JSON memiliki
+										`className`)
 									</label>
 									<select
 										value={batchClassId}
 										onChange={(e) => setBatchClassId(e.target.value)}
 										className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
 									>
-										<option value="">-- Pilih Kelas --</option>
+										<option value="">
+											-- Otomatis Dari Data / Pilih Kelas --
+										</option>
 										{classesList?.map((c) => (
 											<option key={c.id} value={c.id}>
 												{c.name} ({c.academicTerm})
@@ -641,16 +751,30 @@ function AdminStudentsPage() {
 								</div>
 
 								<div>
-									<label className="block font-medium text-slate-700 mb-1">
-										Paste Data (Format: Nama, Email, NIM per baris)
-									</label>
+									<div className="flex items-center justify-between mb-1">
+										<label className="font-medium text-slate-700">
+											Data Mahasiswa (JSON Array atau CSV)
+										</label>
+										{batchText.trim().startsWith("[") && (
+											<span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded font-semibold">
+												JSON Terdeteksi
+											</span>
+										)}
+									</div>
 									<textarea
-										rows={6}
+										rows={7}
 										value={batchText}
 										onChange={(e) => setBatchText(e.target.value)}
-										placeholder="Budi Santoso, budi@student.ac.id, 21051204010&#10;Siti Aminah, siti@student.ac.id, 21051204011"
+										placeholder='Contoh JSON Array:&#10;[&#10;  {"email": "budi@univ.ac.id", "name": "Budi Santoso", "nim": "2404140001", "className": "Rabu, Jam 10 DC 3A"}&#10;]&#10;&#10;Atau Format CSV:&#10;Budi Santoso, budi@univ.ac.id, 2404140001'
 										className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-[11px]"
 									/>
+									<p className="text-[11px] text-slate-400 mt-1">
+										Mendukung file{" "}
+										<code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700">
+											students.private.json
+										</code>{" "}
+										langsung atau format CSV/Excel.
+									</p>
 								</div>
 
 								<div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -664,12 +788,12 @@ function AdminStudentsPage() {
 									<button
 										type="button"
 										onClick={handleBatchParseAndSubmit}
-										disabled={batchAddMutation.isPending}
+										disabled={batchAddMutation.isPending || !batchText.trim()}
 										className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
 									>
 										{batchAddMutation.isPending
 											? "Memproses..."
-											: "Proses Impor Batch"}
+											: "Proses Impor Mahasiswa"}
 									</button>
 								</div>
 							</div>

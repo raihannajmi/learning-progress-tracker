@@ -16,6 +16,8 @@
     "db:seed:dev": "tsx src/db/seed-dev.ts",
     "db:seed:prod": "tsx src/db/seed-prod.ts",
     "db:seed:prod:run": "node dist/db/seed-prod.js",
+    "db:import:students": "tsx src/db/seed-students.ts",
+    "db:import:students:prod": "node dist/db/seed-students.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
