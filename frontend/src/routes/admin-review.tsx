@@ -484,7 +484,7 @@ function AdminReviewPage() {
 				)}
 
 				{/* 4. Pagination Footer */}
-				{pagination && pagination.totalPages > 1 && (
+				{pagination && pagination.total > 0 && (
 					<div className="p-4 border-t border-slate-100">
 						<Pagination
 							currentPage={currentPage}

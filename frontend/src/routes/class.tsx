@@ -201,7 +201,7 @@ function ClassFeedPage() {
 							<PeerFeedbackCard key={sprint.id} sprint={sprint} />
 						))}
 
-						{pagination && pagination.totalPages > 1 && (
+						{pagination && pagination.total > 0 && (
 							<div className="pt-2">
 								<Pagination
 									currentPage={currentPage}
@@ -212,7 +212,7 @@ function ClassFeedPage() {
 									onPageSizeChange={(limit) =>
 										updateFilters({ limit, page: 1 })
 									}
-									pageSizeOptions={[5, 10, 20]}
+									pageSizeOptions={[10, 25, 50]}
 								/>
 							</div>
 						)}

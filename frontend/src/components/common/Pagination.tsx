@@ -18,9 +18,10 @@ export const Pagination: React.FC<Props> = ({
 	pageSize,
 	totalItems,
 	onPageSizeChange,
-	pageSizeOptions = [10, 20, 50],
+	pageSizeOptions = [10, 25, 50],
 }) => {
-	if (totalPages <= 1 && (!totalItems || totalItems <= (pageSize || 10))) {
+	// Only hide pagination if there are literally 0 items
+	if (totalItems === 0 || (!totalItems && totalPages === 0)) {
 		return null;
 	}
 

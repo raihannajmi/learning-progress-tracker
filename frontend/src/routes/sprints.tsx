@@ -1053,7 +1053,7 @@ function SprintsPage() {
 							<PeerFeedbackCard key={sprint.id} sprint={sprint} />
 						))}
 
-						{pagination && pagination.totalPages > 1 && (
+						{pagination && pagination.total > 0 && (
 							<Pagination
 								currentPage={currentPage}
 								totalPages={pagination.totalPages}
@@ -1061,7 +1061,7 @@ function SprintsPage() {
 								pageSize={pageSize}
 								totalItems={pagination.total}
 								onPageSizeChange={(limit) => updateFilters({ limit, page: 1 })}
-								pageSizeOptions={[5, 10, 20]}
+								pageSizeOptions={[10, 25, 50]}
 							/>
 						)}
 					</>

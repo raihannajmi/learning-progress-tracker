@@ -27,25 +27,51 @@ interface Props {
 	sprint: LearningSprint;
 }
 
-// Indonesian relative time formatter
-function formatRelativeTime(dateString: string): string {
+// Robust Date Parser with timezone normalization
+function parseDate(dateInput?: string | Date | null): Date {
+	if (!dateInput) return new Date();
+	if (dateInput instanceof Date) return dateInput;
+
+	let str = String(dateInput).trim();
+	// If ISO string has no timezone indicator ('Z' or '+/-HH:mm'), append 'Z' so it correctly parses as UTC
+	if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(str)) {
+		str = str.replace(" ", "T") + "Z";
+	}
+	const d = new Date(str);
+	return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+// Indonesian relative time formatter with clock time (Jam:Menit)
+function formatRelativeTime(dateInput?: string | Date | null): string {
+	if (!dateInput) return "Baru saja";
+	const date = parseDate(dateInput);
 	const now = new Date();
-	const past = new Date(dateString);
-	const diffMs = now.getTime() - past.getTime();
+	const diffMs = now.getTime() - date.getTime();
 	const diffSec = Math.floor(diffMs / 1000);
 	const diffMin = Math.floor(diffSec / 60);
 	const diffHours = Math.floor(diffMin / 60);
 	const diffDays = Math.floor(diffHours / 24);
 
-	if (diffSec < 45) return "baru saja";
-	if (diffMin < 60) return `${diffMin}m lalu`;
-	if (diffHours < 24) return `${diffHours}j lalu`;
-	if (diffDays === 1) return "kemarin";
-	if (diffDays < 7) return `${diffDays}h lalu`;
+	const timeStr = date.toLocaleTimeString("id-ID", {
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	});
 
-	return past.toLocaleDateString("id-ID", {
-		day: "numeric",
-		month: "short",
+	if (diffSec < 60 && diffSec >= -30) return `Baru saja • ${timeStr}`;
+	if (diffMin < 60 && diffMin > 0) return `${diffMin}m lalu • ${timeStr}`;
+	if (diffHours < 24 && diffHours > 0) return `${diffHours}j lalu • ${timeStr}`;
+	if (diffDays === 1) return `Kemarin • ${timeStr}`;
+	if (diffDays < 7 && diffDays > 1) return `${diffDays}h lalu • ${timeStr}`;
+
+	return `${date.toLocaleDateString("id-ID", { day: "numeric", month: "short" })} • ${timeStr}`;
+}
+
+function formatFullDate(dateInput?: string | Date | null): string {
+	const date = parseDate(dateInput);
+	return date.toLocaleString("id-ID", {
+		dateStyle: "medium",
+		timeStyle: "short",
 	});
 }
 
@@ -514,7 +540,10 @@ export const PeerFeedbackCard: React.FC<Props> = ({ sprint }) => {
 											{isFromMe ? "Saya" : fb.author.name}
 										</span>
 
-										<span className="text-slate-400 font-mono text-[10px]">
+										<span
+											className="text-slate-400 font-mono text-[10px]"
+											title={formatFullDate(fb.createdAt)}
+										>
 											{formatRelativeTime(fb.createdAt)}
 										</span>
 									</div>
