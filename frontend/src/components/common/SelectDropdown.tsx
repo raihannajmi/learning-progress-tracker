@@ -60,7 +60,10 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
 		: options;
 
 	return (
-		<div className={`relative ${className}`} ref={containerRef}>
+		<div
+			className={`relative ${isOpen ? "z-30" : ""} ${className}`}
+			ref={containerRef}
+		>
 			{label && (
 				<label className="block text-xs font-medium text-slate-700 mb-1">
 					{label}

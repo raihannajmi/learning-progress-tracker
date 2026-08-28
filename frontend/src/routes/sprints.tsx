@@ -320,7 +320,7 @@ function SprintsPage() {
 	return (
 		<div className="max-w-3xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Interactive Focus Session & In-Page Devlog Studio */}
-			<div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+			<div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm">
 				{status === "IDLE" || status === "COMPLETED" ? (
 					/* IDLE / WORKSPACE VIEW */
 					<div className="p-6 md:p-7 space-y-6">
