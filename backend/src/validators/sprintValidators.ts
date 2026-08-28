@@ -1,19 +1,23 @@
 import { z } from 'zod';
 
+const minWords = (count: number, msg: string) =>
+  z.string({ required_error: msg }).refine(
+    (val) => val.trim().split(/\s+/).filter(Boolean).length >= count,
+    { message: msg }
+  );
+
 export const createSprintSchema = z.object({
   body: z.object({
     topicId: z.string().optional().nullable(),
     durationMinutes: z
       .number({ required_error: 'Durasi belajar wajib diisi' })
       .min(1, 'Durasi belajar minimal 1 menit'),
-    whatLearned: z
-      .string({ required_error: 'Catatan apa yang dipelajari wajib diisi' })
-      .min(5, 'Penjelasan apa yang dipelajari minimal 5 karakter'),
-    whatPracticed: z
-      .string({ required_error: 'Catatan apa yang dipraktekkan wajib diisi' })
-      .min(5, 'Penjelasan apa yang dipraktekkan minimal 5 karakter'),
+    whatLearned: minWords(15, 'Ceritakan pemahaman konsep Anda minimal 15 kata'),
+    whatPracticed: minWords(15, 'Ceritakan hasil praktek atau eksperimen kode Anda minimal 15 kata'),
     confusingParts: z.string().optional().nullable(),
     evidenceUrl: z.string().optional().or(z.literal('')).nullable(),
+    loomUrl: z.string().optional().or(z.literal('')).nullable(),
+    demoUrl: z.string().optional().or(z.literal('')).nullable(),
     evidenceType: z
       .enum(['GITHUB', 'GITHUB_PAGES', 'LOOM', 'FIGMA', 'LIVE_DEMO', 'OTHER'])
       .default('OTHER'),
@@ -40,10 +44,22 @@ export const updateSprintSchema = z.object({
   body: z.object({
     topicId: z.string().optional().nullable(),
     durationMinutes: z.number().min(1, 'Durasi belajar minimal 1 menit').optional(),
-    whatLearned: z.string().min(5, 'Penjelasan apa yang dipelajari minimal 5 karakter').optional(),
-    whatPracticed: z.string().min(5, 'Penjelasan apa yang dipraktekkan minimal 5 karakter').optional(),
+    whatLearned: z
+      .string()
+      .refine((val) => val.trim().split(/\s+/).filter(Boolean).length >= 15, {
+        message: 'Ceritakan pemahaman konsep Anda minimal 15 kata',
+      })
+      .optional(),
+    whatPracticed: z
+      .string()
+      .refine((val) => val.trim().split(/\s+/).filter(Boolean).length >= 15, {
+        message: 'Ceritakan hasil praktek atau eksperimen kode Anda minimal 15 kata',
+      })
+      .optional(),
     confusingParts: z.string().optional().nullable(),
     evidenceUrl: z.string().optional().or(z.literal('')).nullable(),
+    loomUrl: z.string().optional().or(z.literal('')).nullable(),
+    demoUrl: z.string().optional().or(z.literal('')).nullable(),
     evidenceType: z
       .enum(['GITHUB', 'GITHUB_PAGES', 'LOOM', 'FIGMA', 'LIVE_DEMO', 'OTHER'])
       .optional(),

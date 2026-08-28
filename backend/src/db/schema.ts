@@ -141,6 +141,8 @@ export const learningSprints = pgTable(
     whatPracticed: text('what_practiced').notNull(),
     confusingParts: text('confusing_parts'), // Reflection on blockers/confusion
     evidenceUrl: varchar('evidence_url', { length: 500 }),
+    loomUrl: varchar('loom_url', { length: 500 }),
+    demoUrl: varchar('demo_url', { length: 500 }),
     evidenceType: evidenceTypeEnum('evidence_type').default('OTHER'),
     reviewStatus: varchar('review_status', { length: 50 }).default('PENDING').notNull(), // "PENDING", "REVIEWED"
     needsFeedback: boolean('needs_feedback').default(false).notNull(), // Student requested instructor assistance

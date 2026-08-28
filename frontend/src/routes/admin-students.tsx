@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import {
+	Edit2,
 	Eye,
 	FileSpreadsheet,
 	Plus,
@@ -83,6 +84,7 @@ function AdminStudentsPage() {
 	const [batchClassId, setBatchClassId] = useState("");
 	const [batchText, setBatchText] = useState("");
 	const [inspectedStudent, setInspectedStudent] = useState<any | null>(null);
+	const [editingStudent, setEditingStudent] = useState<User | null>(null);
 	const [deletingStudent, setDeletingStudent] = useState<User | null>(null);
 	const [batchResult, setBatchResult] = useState<{
 		added: number;
@@ -188,6 +190,30 @@ function AdminStudentsPage() {
 		onError: (err: any) => {
 			toast.error(
 				"Gagal Menambahkan Mahasiswa",
+				err.response?.data?.message || "Terjadi kesalahan.",
+			);
+		},
+	});
+
+	// Update Single Student Mutation
+	const updateStudentMutation = useMutation({
+		mutationFn: async ({ id, values }: { id: string; values: any }) => {
+			const res: any = await api.patch(`/admin/students/${id}`, values);
+			return res.data;
+		},
+		onSuccess: (data) => {
+			queryClient.invalidateQueries({ queryKey: ["adminStudents"] });
+			queryClient.invalidateQueries({ queryKey: ["classes"] });
+			queryClient.invalidateQueries({ queryKey: ["adminDashboard"] });
+			setEditingStudent(null);
+			toast.success(
+				"Data Mahasiswa Diperbarui",
+				`${data?.name || "Mahasiswa"} telah diperbarui.`,
+			);
+		},
+		onError: (err: any) => {
+			toast.error(
+				"Gagal Memperbarui Mahasiswa",
 				err.response?.data?.message || "Terjadi kesalahan.",
 			);
 		},
@@ -501,6 +527,14 @@ function AdminStudentsPage() {
 											</button>
 											<button
 												type="button"
+												onClick={() => setEditingStudent(student)}
+												className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-md transition-colors cursor-pointer"
+												title="Edit Data Mahasiswa"
+											>
+												<Edit2 size={15} />
+											</button>
+											<button
+												type="button"
 												onClick={() => setDeletingStudent(student)}
 												disabled={deleteStudentMutation.isPending}
 												className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
@@ -588,6 +622,14 @@ function AdminStudentsPage() {
 														title="Lihat Detail Progres"
 													>
 														<Eye size={14} />
+													</button>
+													<button
+														type="button"
+														onClick={() => setEditingStudent(student)}
+														className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-md transition-colors cursor-pointer"
+														title="Edit Data Mahasiswa"
+													>
+														<Edit2 size={14} />
 													</button>
 													<button
 														type="button"
@@ -752,6 +794,168 @@ function AdminStudentsPage() {
 											className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
 										>
 											Simpan Mahasiswa
+										</button>
+									</div>
+								</Form>
+							)}
+						</Formik>
+					</div>
+				</div>
+			)}
+
+			{/* 4.2. Edit Student Modal */}
+			{editingStudent && (
+				<div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+					<div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+						<div className="flex items-center justify-between border-b border-slate-100 pb-3">
+							<h3 className="text-sm font-semibold text-slate-900">
+								Edit Data Mahasiswa
+							</h3>
+							<button
+								type="button"
+								onClick={() => setEditingStudent(null)}
+								className="text-slate-400 hover:text-slate-600 cursor-pointer"
+							>
+								<X size={16} />
+							</button>
+						</div>
+
+						<Formik
+							initialValues={{
+								name: editingStudent.name || "",
+								email: editingStudent.email || "",
+								nim: editingStudent.nim || "",
+								classId: editingStudent.classId || classesList?.[0]?.id || "",
+								githubRepoUrl: editingStudent.githubRepoUrl || "",
+								githubPageUrl: editingStudent.githubPageUrl || "",
+								isActive: editingStudent.isActive ?? true,
+							}}
+							validationSchema={SingleStudentSchema}
+							enableReinitialize={true}
+							onSubmit={(values) =>
+								updateStudentMutation.mutate({
+									id: editingStudent.id,
+									values,
+								})
+							}
+						>
+							{({ values, setFieldValue, isSubmitting }) => (
+								<Form className="space-y-3.5 text-xs">
+									<div>
+										<label className="block font-medium text-slate-700 mb-1">
+											Nama Lengkap Mahasiswa *
+										</label>
+										<Field
+											type="text"
+											name="name"
+											placeholder="e.g. Muhammad Zahi Ustadzi"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+										/>
+										<ErrorMessage
+											name="name"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
+									</div>
+
+									<div>
+										<label className="block font-medium text-slate-700 mb-1">
+											Email Akun Google *
+										</label>
+										<Field
+											type="email"
+											name="email"
+											placeholder="e.g. zahi@student.univ.ac.id"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+										/>
+										<ErrorMessage
+											name="email"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
+									</div>
+
+									<div>
+										<label className="block font-medium text-slate-700 mb-1">
+											Nomor Induk Mahasiswa (NIM) *
+										</label>
+										<Field
+											type="text"
+											name="nim"
+											placeholder="e.g. 21051204001"
+											className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+										/>
+										<ErrorMessage
+											name="nim"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
+									</div>
+
+									<div>
+										<label className="block font-medium text-slate-700 mb-1">
+											Kelas Perkuliahan *
+										</label>
+										<SelectDropdown
+											value={values.classId}
+											onChange={(val) => setFieldValue("classId", val)}
+											placeholder="-- Pilih Kelas Perkuliahan --"
+											options={
+												classesList?.map((c) => ({
+													value: c.id,
+													label: c.name,
+													badge: c.academicTerm,
+												})) || []
+											}
+										/>
+										<ErrorMessage
+											name="classId"
+											component="div"
+											className="text-rose-600 text-[11px] mt-0.5"
+										/>
+									</div>
+
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+										<div>
+											<label className="block font-medium text-slate-700 mb-1">
+												URL GitHub Repo (Opsional)
+											</label>
+											<Field
+												type="url"
+												name="githubRepoUrl"
+												placeholder="https://github.com/..."
+												className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-[11px]"
+											/>
+										</div>
+										<div>
+											<label className="block font-medium text-slate-700 mb-1">
+												URL GitHub Pages (Opsional)
+											</label>
+											<Field
+												type="url"
+												name="githubPageUrl"
+												placeholder="https://...github.io"
+												className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-[11px]"
+											/>
+										</div>
+									</div>
+
+									<div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+										<button
+											type="button"
+											onClick={() => setEditingStudent(null)}
+											className="px-3.5 py-1.5 text-slate-600 hover:text-slate-800 cursor-pointer"
+										>
+											Batal
+										</button>
+										<button
+											type="submit"
+											disabled={isSubmitting || updateStudentMutation.isPending}
+											className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+										>
+											{updateStudentMutation.isPending
+												? "Menyimpan..."
+												: "Simpan Perubahan"}
 										</button>
 									</div>
 								</Form>

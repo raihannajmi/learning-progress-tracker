@@ -1,4 +1,6 @@
 import axios from "axios";
+import { useAuthStore } from "../stores/authStore.js";
+import { toast } from "../stores/toastStore.js";
 
 const API_BASE_URL =
 	import.meta.env.VITE_API_URL ?? "http://localhost:5001/api/v1";
@@ -29,12 +31,30 @@ api.interceptors.request.use(
 	(error) => Promise.reject(error),
 );
 
-// Response interceptor: extract response data
+// Response interceptor: extract response data & handle session expiration
 api.interceptors.response.use(
 	(response) => {
 		return response.data;
 	},
 	(error) => {
+		const status = error.response?.status;
+		const isLoginRequest = error.config?.url?.includes("/auth/google/verify");
+
+		// Handle expired or invalid session token gracefully
+		if (status === 401 && !isLoginRequest) {
+			const { isAuthenticated, logout } = useAuthStore.getState();
+			if (isAuthenticated) {
+				logout();
+				toast.warning(
+					"Sesi Telah Berakhir",
+					"Sesi login Anda telah berakhir atau tidak valid. Silakan login kembali.",
+				);
+				if (typeof window !== "undefined" && window.location.pathname !== "/") {
+					window.location.href = "/";
+				}
+			}
+		}
+
 		const errorData = error.response?.data?.error;
 		const message =
 			errorData?.message || error.message || "Terjadi kesalahan sistem";
@@ -42,7 +62,7 @@ api.interceptors.response.use(
 			message,
 			code: errorData?.code,
 			details: errorData?.details,
-			status: error.response?.status,
+			status,
 		});
 	},
 );

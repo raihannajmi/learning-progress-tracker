@@ -105,6 +105,8 @@ export interface LearningSprint {
 	whatPracticed: string;
 	confusingParts?: string | null;
 	evidenceUrl?: string | null;
+	loomUrl?: string | null;
+	demoUrl?: string | null;
 	evidenceType: EvidenceType;
 	reviewStatus?: "PENDING" | "REVIEWED";
 	needsFeedback?: boolean;

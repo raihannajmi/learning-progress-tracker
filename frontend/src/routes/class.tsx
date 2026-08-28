@@ -108,13 +108,19 @@ function ClassFeedPage() {
 	return (
 		<div className="max-w-2xl mx-auto w-full space-y-6 min-w-0 max-w-full">
 			{/* 1. Header & Context */}
-			<div className="space-y-1">
-				<h1 className="text-xl font-bold tracking-tight text-slate-900">
-					Feed & Diskusi Belajar Kelas
-				</h1>
+			<div className="space-y-1.5">
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<h1 className="text-xl font-bold tracking-tight text-slate-900">
+						Feed & Diskusi Belajar Kelas
+					</h1>
+					<span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+						{pagination?.total ?? 0} Sesi Sprint Terbagikan
+					</span>
+				</div>
 				<p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
-					Eksplorasi apa yang sedang dipelajari teman sekelas, pelajari kendala
-					bersama, dan berikan evaluasi maupun saran konstruktif.
+					Eksplorasi apa yang sedang dipelajari teman di {activeClassName},
+					diskusikan hambatan materi, dan berikan evaluasi maupun saran
+					konstruktif.
 				</p>
 			</div>
 
@@ -125,13 +131,18 @@ function ClassFeedPage() {
 					<button
 						type="button"
 						onClick={() => updateFilters({ needsFeedback: undefined, page: 1 })}
-						className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+						className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
 							!needsFeedbackFilter
 								? "bg-slate-900 text-white shadow-xs"
 								: "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
 						}`}
 					>
-						Semua Postingan
+						<span>Semua Postingan</span>
+						{!needsFeedbackFilter && pagination?.total !== undefined && (
+							<span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-200 font-mono">
+								{pagination.total}
+							</span>
+						)}
 					</button>
 
 					<button
@@ -144,7 +155,12 @@ function ClassFeedPage() {
 						}`}
 					>
 						<HelpCircle size={13} />
-						<span>Minta Asistensi Dosen</span>
+						<span>Minta Asistensi</span>
+						{needsFeedbackFilter && pagination?.total !== undefined && (
+							<span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-700 text-amber-100 font-mono">
+								{pagination.total}
+							</span>
+						)}
 					</button>
 				</div>
 

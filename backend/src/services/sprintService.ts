@@ -6,7 +6,7 @@ import {
   topics,
   peerFeedback,
 } from '../db/schema.js';
-import { eq, desc, and, sql, or, ilike } from 'drizzle-orm';
+import { eq, desc, asc, and, sql, or, ilike, inArray } from 'drizzle-orm';
 
 export class SprintService {
   static async listSprints(filters?: {
@@ -25,16 +25,18 @@ export class SprintService {
     if (filters?.userId) {
       conditions.push(eq(learningSprints.userId, filters.userId));
     }
+
     if (filters?.classId) {
       conditions.push(eq(users.classId, filters.classId));
     }
-    if (filters?.needsFeedback !== undefined) {
-      conditions.push(eq(learningSprints.needsFeedback, filters.needsFeedback));
+
+    if (filters?.needsFeedback !== undefined && filters?.needsFeedback !== null) {
+      conditions.push(eq(learningSprints.needsFeedback, Boolean(filters.needsFeedback)));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // 1. Get total count
+    // Get total count
     const [countResult] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(learningSprints)
@@ -44,7 +46,7 @@ export class SprintService {
     const total = countResult?.count || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
-    // 2. Query paginated sprints
+    // Get paginated sprints with student & topic relations
     const sprints = await db
       .select({
         id: learningSprints.id,
@@ -53,6 +55,8 @@ export class SprintService {
         whatPracticed: learningSprints.whatPracticed,
         confusingParts: learningSprints.confusingParts,
         evidenceUrl: learningSprints.evidenceUrl,
+        loomUrl: learningSprints.loomUrl,
+        demoUrl: learningSprints.demoUrl,
         evidenceType: learningSprints.evidenceType,
         reviewStatus: learningSprints.reviewStatus,
         needsFeedback: learningSprints.needsFeedback,
@@ -63,10 +67,10 @@ export class SprintService {
           id: users.id,
           name: users.name,
           email: users.email,
-          nim: users.nim,
           avatarUrl: users.avatarUrl,
-          classId: users.classId,
+          role: users.role,
           className: classes.name,
+          nim: users.nim,
         },
         topic: {
           id: topics.id,
@@ -83,7 +87,7 @@ export class SprintService {
       .limit(limit)
       .offset(offset);
 
-    // Fetch peer feedbacks for these sprints
+    // Fetch peer feedbacks for these sprints in chronological order (chat thread: oldest -> newest at bottom)
     const sprintIds = sprints.map((s) => s.id);
     const feedbackMap = new Map<string, any[]>();
 
@@ -103,7 +107,8 @@ export class SprintService {
         })
         .from(peerFeedback)
         .innerJoin(users, eq(peerFeedback.authorId, users.id))
-        .orderBy(desc(peerFeedback.createdAt));
+        .where(inArray(peerFeedback.sprintId, sprintIds))
+        .orderBy(asc(peerFeedback.createdAt));
 
       for (const fb of feedbacks) {
         if (!feedbackMap.has(fb.sprintId)) {
@@ -184,6 +189,8 @@ export class SprintService {
         whatPracticed: learningSprints.whatPracticed,
         confusingParts: learningSprints.confusingParts,
         evidenceUrl: learningSprints.evidenceUrl,
+        loomUrl: learningSprints.loomUrl,
+        demoUrl: learningSprints.demoUrl,
         evidenceType: learningSprints.evidenceType,
         reviewStatus: learningSprints.reviewStatus,
         instructorFeedback: learningSprints.instructorFeedback,
@@ -324,6 +331,8 @@ export class SprintService {
         whatPracticed: learningSprints.whatPracticed,
         confusingParts: learningSprints.confusingParts,
         evidenceUrl: learningSprints.evidenceUrl,
+        loomUrl: learningSprints.loomUrl,
+        demoUrl: learningSprints.demoUrl,
         evidenceType: learningSprints.evidenceType,
         reviewStatus: learningSprints.reviewStatus,
         instructorFeedback: learningSprints.instructorFeedback,
@@ -389,6 +398,8 @@ export class SprintService {
       whatPracticed: string;
       confusingParts?: string | null;
       evidenceUrl?: string | null;
+      loomUrl?: string | null;
+      demoUrl?: string | null;
       evidenceType?: 'GITHUB' | 'GITHUB_PAGES' | 'LOOM' | 'FIGMA' | 'LIVE_DEMO' | 'OTHER';
       needsFeedback?: boolean;
     }
@@ -403,6 +414,8 @@ export class SprintService {
         whatPracticed: data.whatPracticed,
         confusingParts: data.confusingParts || null,
         evidenceUrl: data.evidenceUrl || null,
+        loomUrl: data.loomUrl || null,
+        demoUrl: data.demoUrl || null,
         evidenceType: data.evidenceType || 'OTHER',
         reviewStatus: 'PENDING',
         needsFeedback: Boolean(data.needsFeedback),
@@ -428,7 +441,7 @@ export class SprintService {
       throw err;
     }
 
-    const [fb] = await db
+    const [newFeedback] = await db
       .insert(peerFeedback)
       .values({
         sprintId,
@@ -449,7 +462,7 @@ export class SprintService {
       .limit(1);
 
     return {
-      ...fb,
+      ...newFeedback,
       author,
     };
   }
@@ -461,25 +474,25 @@ export class SprintService {
     userRole: string,
     comment: string
   ) {
-    const [fb] = await db
+    const [feedback] = await db
       .select()
       .from(peerFeedback)
       .where(and(eq(peerFeedback.id, feedbackId), eq(peerFeedback.sprintId, sprintId)))
       .limit(1);
 
-    if (!fb) {
-      const err: any = new Error('Feedback tidak ditemukan');
+    if (!feedback) {
+      const err: any = new Error('Komentar tidak ditemukan');
       err.statusCode = 404;
       throw err;
     }
 
-    if (fb.authorId !== userId && userRole !== 'ADMIN') {
+    if (feedback.authorId !== userId && userRole !== 'ADMIN') {
       const err: any = new Error('Anda tidak memiliki izin untuk mengedit komentar ini');
       err.statusCode = 403;
       throw err;
     }
 
-    const [updatedFb] = await db
+    const [updatedFeedback] = await db
       .update(peerFeedback)
       .set({
         comment,
@@ -495,11 +508,11 @@ export class SprintService {
         role: users.role,
       })
       .from(users)
-      .where(eq(users.id, fb.authorId))
+      .where(eq(users.id, feedback.authorId))
       .limit(1);
 
     return {
-      ...updatedFb,
+      ...updatedFeedback,
       author,
     };
   }
@@ -510,19 +523,19 @@ export class SprintService {
     userId: string,
     userRole: string
   ) {
-    const [fb] = await db
+    const [feedback] = await db
       .select()
       .from(peerFeedback)
       .where(and(eq(peerFeedback.id, feedbackId), eq(peerFeedback.sprintId, sprintId)))
       .limit(1);
 
-    if (!fb) {
-      const err: any = new Error('Feedback tidak ditemukan');
+    if (!feedback) {
+      const err: any = new Error('Komentar tidak ditemukan');
       err.statusCode = 404;
       throw err;
     }
 
-    if (fb.authorId !== userId && userRole !== 'ADMIN') {
+    if (feedback.authorId !== userId && userRole !== 'ADMIN') {
       const err: any = new Error('Anda tidak memiliki izin untuk menghapus komentar ini');
       err.statusCode = 403;
       throw err;
@@ -532,7 +545,7 @@ export class SprintService {
 
     return {
       success: true,
-      message: 'Feedback berhasil dihapus',
+      message: 'Komentar berhasil dihapus',
     };
   }
 
@@ -547,6 +560,8 @@ export class SprintService {
       whatPracticed?: string;
       confusingParts?: string | null;
       evidenceUrl?: string | null;
+      loomUrl?: string | null;
+      demoUrl?: string | null;
       evidenceType?: 'GITHUB' | 'GITHUB_PAGES' | 'LOOM' | 'FIGMA' | 'LIVE_DEMO' | 'OTHER';
       needsFeedback?: boolean;
     }
@@ -569,9 +584,7 @@ export class SprintService {
       throw err;
     }
 
-    const updatePayload: Record<string, any> = {
-      updatedAt: new Date(),
-    };
+    const updatePayload: Record<string, any> = {};
 
     if (data.topicId !== undefined) updatePayload.topicId = data.topicId;
     if (data.durationMinutes !== undefined) updatePayload.durationMinutes = data.durationMinutes;
@@ -579,6 +592,8 @@ export class SprintService {
     if (data.whatPracticed !== undefined) updatePayload.whatPracticed = data.whatPracticed;
     if (data.confusingParts !== undefined) updatePayload.confusingParts = data.confusingParts;
     if (data.evidenceUrl !== undefined) updatePayload.evidenceUrl = data.evidenceUrl;
+    if (data.loomUrl !== undefined) updatePayload.loomUrl = data.loomUrl;
+    if (data.demoUrl !== undefined) updatePayload.demoUrl = data.demoUrl;
     if (data.evidenceType !== undefined) updatePayload.evidenceType = data.evidenceType;
     if (data.needsFeedback !== undefined) updatePayload.needsFeedback = Boolean(data.needsFeedback);
 

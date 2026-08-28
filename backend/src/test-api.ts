@@ -64,13 +64,16 @@ async function runTests() {
     console.log('5️⃣ Testing 25-Minute Learning Sprint Logger & Habit Indicator...');
     const newSprint = await SprintService.createSprint(studentAuth.user.id, {
       durationMinutes: 28,
-      whatLearned: 'Memahami implementasi CSS Grid dengan minmax dan auto-fit.',
-      whatPracticed: 'Membuat responsive image gallery 4 kolom.',
+      whatLearned: 'Hari ini saya mempelajari konsep fundamental CSS Grid, penggunaan template columns dengan minmax dan auto-fit untuk layout responsif.',
+      whatPracticed: 'Mengimplementasikan responsive image gallery multi-kolom yang beradaptasi secara dinamis pada berbagai ukuran layar mobile dan desktop.',
       confusingParts: 'Sedikit ragu tentang implicit vs explicit grid tracks.',
       evidenceUrl: 'https://github.com/andipratama/webdev-portfolio',
       evidenceType: 'GITHUB',
     });
     console.log(`   ✅ PASS: Sprint created with duration ${newSprint.durationMinutes}m. isHabitQualified: ${newSprint.isHabitQualified}`);
+
+    const listedSprints = await SprintService.listSprints({ page: 1, limit: 10 });
+    console.log(`   ✅ PASS: Listed sprints endpoint (?page=1&limit=10) returned ${listedSprints.data.length} sprints. Total: ${listedSprints.pagination.total}`);
 
     // 6. Peer Feedback
     console.log('6️⃣ Testing Peer Feedback on Sprint (Add, Edit, & Delete)...');

@@ -201,6 +201,8 @@ export class DashboardService {
         durationMinutes: learningSprints.durationMinutes,
         confusingParts: learningSprints.confusingParts,
         evidenceUrl: learningSprints.evidenceUrl,
+        loomUrl: learningSprints.loomUrl,
+        demoUrl: learningSprints.demoUrl,
         evidenceType: learningSprints.evidenceType,
         whatLearned: learningSprints.whatLearned,
         createdAt: learningSprints.createdAt,

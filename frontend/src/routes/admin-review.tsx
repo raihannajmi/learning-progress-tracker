@@ -10,9 +10,11 @@ import {
 	ChevronRight,
 	ClipboardCheck,
 	ExternalLink,
+	Globe,
 	Search,
 	Send,
 	Timer,
+	Video,
 	X,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -401,7 +403,37 @@ function AdminReviewPage() {
 											title={item.evidenceUrl}
 										>
 											<ExternalLink size={12} />
-											<span>{item.evidenceType}</span>
+											<span>
+												{item.evidenceUrl.includes("github.com")
+													? "GitHub"
+													: item.evidenceType}
+											</span>
+										</a>
+									)}
+
+									{item.loomUrl && (
+										<a
+											href={item.loomUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="px-2.5 py-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md inline-flex items-center gap-1 transition-colors"
+											title={item.loomUrl}
+										>
+											<Video size={12} className="text-indigo-600" />
+											<span>Loom</span>
+										</a>
+									)}
+
+									{item.demoUrl && (
+										<a
+											href={item.demoUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="px-2.5 py-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md inline-flex items-center gap-1 transition-colors"
+											title={item.demoUrl}
+										>
+											<Globe size={12} className="text-emerald-600" />
+											<span>Demo</span>
 										</a>
 									)}
 
@@ -523,41 +555,80 @@ function AdminReviewPage() {
 												"Belajar Mandiri"}
 										</span>
 									</div>
-									<p className="text-slate-600">
+									<p className="text-slate-600 break-words whitespace-pre-wrap">
 										<strong className="text-slate-700">
 											Apa yang dipelajari:
 										</strong>{" "}
 										{selectedSprintForReview.whatLearned}
 									</p>
-									<p className="text-slate-600">
+									<p className="text-slate-600 break-words whitespace-pre-wrap">
 										<strong className="text-slate-700">
 											Apa yang dipraktekkan:
 										</strong>{" "}
 										{selectedSprintForReview.whatPracticed}
 									</p>
 									{selectedSprintForReview.confusingParts && (
-										<p className="text-amber-800 bg-amber-50 p-2 rounded-md border border-amber-200">
+										<p className="text-amber-800 bg-amber-50 p-2 rounded-md border border-amber-200 break-words whitespace-pre-wrap">
 											<strong>Kendala Belajar:</strong>{" "}
 											{selectedSprintForReview.confusingParts}
 										</p>
 									)}
 								</div>
 
-								{/* Evidence link */}
-								{selectedSprintForReview.evidenceUrl && (
-									<div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-xs">
-										<span className="text-slate-500 font-mono">
-											Bukti Latihan ({selectedSprintForReview.evidenceType}):
+								{/* Multi-Evidence links */}
+								{(selectedSprintForReview.evidenceUrl ||
+									selectedSprintForReview.loomUrl ||
+									selectedSprintForReview.demoUrl) && (
+									<div className="pt-2.5 border-t border-slate-200/70 space-y-2 text-xs">
+										<span className="text-[11px] font-semibold text-slate-700 block">
+											Tautan Bukti Submisi Mahasiswa:
 										</span>
-										<a
-											href={selectedSprintForReview.evidenceUrl}
-											target="_blank"
-											rel="noreferrer"
-											className="text-blue-600 hover:text-blue-700 hover:underline font-semibold inline-flex items-center gap-1"
-										>
-											<span>Buka Tautan Submisi</span>
-											<ArrowUpRight size={14} />
-										</a>
+										<div className="flex flex-wrap items-center gap-2">
+											{selectedSprintForReview.evidenceUrl && (
+												<a
+													href={selectedSprintForReview.evidenceUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium transition-colors"
+												>
+													<span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+													<span>
+														{selectedSprintForReview.evidenceUrl.includes(
+															"github.com",
+														)
+															? "GitHub Repo / PR"
+															: `Bukti (${selectedSprintForReview.evidenceType || "Link"})`}
+													</span>
+													<ArrowUpRight size={13} />
+												</a>
+											)}
+
+											{selectedSprintForReview.loomUrl && (
+												<a
+													href={selectedSprintForReview.loomUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-medium border border-indigo-200 transition-colors"
+												>
+													<Video size={13} className="text-indigo-600" />
+													<span>Tonton Video Loom</span>
+													<ArrowUpRight size={13} />
+												</a>
+											)}
+
+											{selectedSprintForReview.demoUrl && (
+												<a
+													href={selectedSprintForReview.demoUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-medium border border-emerald-200 transition-colors"
+												>
+													<Globe size={13} className="text-emerald-600" />
+													<span>Live Demo</span>
+													<ArrowUpRight size={13} />
+												</a>
+											)}
+										</div>
 									</div>
 								)}
 							</div>

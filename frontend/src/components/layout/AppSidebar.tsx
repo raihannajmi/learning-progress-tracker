@@ -1,15 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-	AlertCircle,
 	Calendar,
 	ChevronLeft,
 	ChevronRight,
 	ClipboardCheck,
 	Code2,
 	Compass,
-	Eye,
 	GraduationCap,
-	HelpCircle,
 	Layers,
 	LogOut,
 	Map as MapIcon,
@@ -67,7 +64,7 @@ export const AppSidebar: React.FC<Props> = ({
 		},
 	];
 
-	const adminLinks = [
+	const adminTeachingLinks = [
 		{
 			to: "/admin",
 			label: "Monitoring Kelas",
@@ -75,34 +72,17 @@ export const AppSidebar: React.FC<Props> = ({
 		},
 		{
 			to: "/admin-review",
-			label: "Antrean Review Submisi",
+			label: "Antrean Review Asistensi",
 			icon: ClipboardCheck,
-		},
-		{
-			to: "/admin-confusions",
-			label: "Hambatan Belajar",
-			icon: HelpCircle,
-		},
-		{
-			to: "/admin-attention",
-			label: "Perlu Perhatian",
-			icon: AlertCircle,
-		},
-		{
-			to: "/admin-activity",
-			label: "Aktivitas & Bukti",
-			icon: Eye,
 		},
 		{
 			to: "/class",
 			label: "Feed & Diskusi Kelas",
 			icon: Users,
 		},
-		{
-			to: "/admin-classes",
-			label: "Kelola Kelas & Jadwal",
-			icon: Calendar,
-		},
+	];
+
+	const adminAcademicLinks = [
 		{
 			to: "/admin-students",
 			label: "Kelola Mahasiswa",
@@ -114,8 +94,13 @@ export const AppSidebar: React.FC<Props> = ({
 			icon: GraduationCap,
 		},
 		{
+			to: "/admin-classes",
+			label: "Kelola Kelas & Jadwal",
+			icon: Calendar,
+		},
+		{
 			to: "/admin-roadmap",
-			label: "Kelola Roadmap",
+			label: "Kelola Roadmap Silabus",
 			icon: Layers,
 		},
 	];
@@ -232,31 +217,62 @@ export const AppSidebar: React.FC<Props> = ({
 
 					{/* Admin Zone (Dosen / TA only) */}
 					{isAdmin && (
-						<div>
-							{!isCollapsed && (
-								<div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-									Area Dosen & TA
-								</div>
-							)}
-							<nav className="space-y-0.5">
-								{adminLinks.map((link) => {
-									const Icon = link.icon;
-									return (
-										<Link
-											key={link.to}
-											to={link.to}
-											onClick={() => setIsMobileOpen(false)}
-											className={navLinkClass(link.to)}
-											title={isCollapsed ? link.label : undefined}
-										>
-											<Icon size={16} className="shrink-0" />
-											{!isCollapsed && (
-												<span className="truncate">{link.label}</span>
-											)}
-										</Link>
-									);
-								})}
-							</nav>
+						<div className="space-y-4">
+							{/* 1. Daily Teaching & Mentoring */}
+							<div>
+								{!isCollapsed && (
+									<div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-800">
+										Asistensi & Kelas
+									</div>
+								)}
+								<nav className="space-y-0.5">
+									{adminTeachingLinks.map((link) => {
+										const Icon = link.icon;
+										return (
+											<Link
+												key={link.to}
+												to={link.to}
+												onClick={() => setIsMobileOpen(false)}
+												className={navLinkClass(link.to)}
+												title={isCollapsed ? link.label : undefined}
+											>
+												<Icon size={16} className="shrink-0" />
+												{!isCollapsed && (
+													<span className="truncate">{link.label}</span>
+												)}
+											</Link>
+										);
+									})}
+								</nav>
+							</div>
+
+							{/* 2. Academic Management & Setup */}
+							<div>
+								{!isCollapsed && (
+									<div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+										Pengaturan Akademik
+									</div>
+								)}
+								<nav className="space-y-0.5">
+									{adminAcademicLinks.map((link) => {
+										const Icon = link.icon;
+										return (
+											<Link
+												key={link.to}
+												to={link.to}
+												onClick={() => setIsMobileOpen(false)}
+												className={navLinkClass(link.to)}
+												title={isCollapsed ? link.label : undefined}
+											>
+												<Icon size={16} className="shrink-0" />
+												{!isCollapsed && (
+													<span className="truncate">{link.label}</span>
+												)}
+											</Link>
+										);
+									})}
+								</nav>
+							</div>
 						</div>
 					)}
 				</div>

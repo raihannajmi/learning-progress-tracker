@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Flame, Play, Timer } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import { EmptyState } from "../components/common/EmptyState.js";
+import { SelectDropdown } from "../components/common/SelectDropdown.js";
 import { api } from "../lib/api.js";
 import { useAuthStore } from "../stores/authStore.js";
 import { useTimerStore } from "../stores/timerStore.js";
-import type { StudentDashboardData } from "../types/index.js";
+import type { RoadmapWeek, StudentDashboardData } from "../types/index.js";
 
 export const Route = createFileRoute("/dashboard")({
 	component: StudentDashboard,
@@ -15,7 +16,8 @@ export const Route = createFileRoute("/dashboard")({
 function StudentDashboard() {
 	const navigate = useNavigate();
 	const { user, isAuthenticated } = useAuthStore();
-	const { openReflectionModal } = useTimerStore();
+	const { startSession, openReflectionModal } = useTimerStore();
+	const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
 
 	React.useEffect(() => {
 		if (!isAuthenticated) {
@@ -29,6 +31,16 @@ function StudentDashboard() {
 		queryKey: ["studentDashboard"],
 		queryFn: async () => {
 			const res: any = await api.get("/dashboard/student");
+			return res.data;
+		},
+		enabled: isAuthenticated && user?.role !== "ADMIN",
+	});
+
+	// Fetch Roadmap for topic picker
+	const { data: roadmapWeeks } = useQuery<RoadmapWeek[]>({
+		queryKey: ["roadmap"],
+		queryFn: async () => {
+			const res: any = await api.get("/roadmap");
 			return res.data;
 		},
 		enabled: isAuthenticated && user?.role !== "ADMIN",
@@ -56,11 +68,68 @@ function StudentDashboard() {
 	const totalMins =
 		data.summary.totalMinutesLearned ?? data.summary.totalDurationMinutes ?? 0;
 
-	// Clean structured topic & module info
-	const activeTopic = data.nextAction?.topicTitle || data.currentWeek.title;
-	const activeModule = data.nextAction?.moduleTitle || data.currentWeek.title;
+	const allTopics =
+		roadmapWeeks?.flatMap((w) =>
+			w.topics.map((t) => ({
+				...t,
+				weekNumber: w.weekNumber,
+				weekTitle: w.title,
+			})),
+		) || [];
+
+	// Resolved active topic for focus session
+	const isCustomSelected = selectedTopicId !== null;
+	const currentTopicObj = isCustomSelected
+		? allTopics.find((t) => t.id === selectedTopicId)
+		: null;
+
+	const currentTopicId = isCustomSelected
+		? selectedTopicId
+		: data.nextAction?.topicId || allTopics[0]?.id || null;
+
+	const activeTopicTitle =
+		currentTopicObj?.title ||
+		data.nextAction?.topicTitle ||
+		data.currentWeek.title;
+
+	const activeModuleTitle =
+		currentTopicObj?.weekTitle ||
+		data.nextAction?.moduleTitle ||
+		data.currentWeek.title;
+
+	const activeWeekNumber =
+		currentTopicObj?.weekNumber || data.currentWeek.weekNumber;
+
 	const activeStatement =
-		data.nextAction?.statement || data.currentWeek.description;
+		currentTopicObj?.checklists?.[0]?.statement ||
+		data.nextAction?.statement ||
+		data.currentWeek.description;
+
+	const topicOptions = [
+		...(data.nextAction?.topicId
+			? [
+					{
+						value: data.nextAction.topicId,
+						label: `[Rekomendasi] ${data.nextAction.topicTitle}`,
+						badge: "Target Terdekat",
+						description: `Minggu ${data.currentWeek.weekNumber}: ${data.nextAction.moduleTitle}`,
+					},
+				]
+			: []),
+		...allTopics
+			.filter((t) => t.id !== data.nextAction?.topicId)
+			.map((t) => ({
+				value: t.id,
+				label: `[Mg ${t.weekNumber}] ${t.title}`,
+				badge: t.category,
+				description: `Minggu ${t.weekNumber}: ${t.weekTitle}`,
+			})),
+	];
+
+	const handleLaunchFocus = () => {
+		startSession(currentTopicId, activeTopicTitle, 25);
+		navigate({ to: "/sprints" });
+	};
 
 	return (
 		<div className="max-w-3xl mx-auto w-full space-y-9 py-2 min-w-0 max-w-full">
@@ -70,14 +139,16 @@ function StudentDashboard() {
 					<div className="flex items-center gap-2 text-xs font-mono text-slate-400">
 						<span>Halo, {firstName}</span>
 						<span>•</span>
-						<span>Minggu {data.currentWeek.weekNumber} dari 8</span>
+						<span>Minggu {activeWeekNumber} dari 8</span>
 						<span>•</span>
-						<span className="text-slate-600 font-medium">{activeModule}</span>
+						<span className="text-slate-600 font-medium">
+							{activeModuleTitle}
+						</span>
 					</div>
 
 					<h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-snug">
 						Lanjutkan Belajar:{" "}
-						<span className="text-blue-600">{activeTopic}</span>
+						<span className="text-blue-600">{activeTopicTitle}</span>
 					</h1>
 
 					{activeStatement && (
@@ -87,20 +158,41 @@ function StudentDashboard() {
 					)}
 				</div>
 
-				{/* Single Primary Action */}
-				<div className="flex flex-wrap items-center gap-3.5 pt-1.5">
+				{/* Topic Selector for Focus Session */}
+				<div className="space-y-1.5 max-w-lg">
+					<label className="block text-xs font-semibold text-slate-700">
+						Pilih Topik Silabus yang Akan Dipelajari:
+					</label>
+					<SelectDropdown
+						value={currentTopicId || ""}
+						onChange={(val) => setSelectedTopicId(val || null)}
+						placeholder="-- Pilih Topik Silabus --"
+						searchable
+						options={topicOptions}
+					/>
+				</div>
+
+				{/* Primary & Secondary Focus Actions */}
+				<div className="flex flex-wrap items-center gap-3 pt-1.5">
 					<button
 						type="button"
-						onClick={() =>
-							openReflectionModal(data.nextAction?.topicId || null, 25)
-						}
+						onClick={handleLaunchFocus}
 						className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs inline-flex items-center gap-2 transition-all cursor-pointer hover:shadow-md"
 					>
 						<Play size={14} className="fill-white" />
 						<span>Mulai Sesi Fokus — 25 Menit</span>
 					</button>
 
-					<span className="text-xs text-slate-500 font-mono">
+					<button
+						type="button"
+						onClick={() => openReflectionModal(currentTopicId, 25)}
+						className="px-4 py-2.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+					>
+						<Timer size={14} className="text-slate-500" />
+						<span>Catat Refleksi Manual</span>
+					</button>
+
+					<span className="text-xs text-slate-500 font-mono pl-1">
 						{totalMins}m fokus ({data.summary.habitReachedCount}x habit ≥25m)
 					</span>
 				</div>

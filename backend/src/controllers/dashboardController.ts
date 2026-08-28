@@ -5,8 +5,13 @@ import { sendSuccess } from '../utils/response.js';
 export class DashboardController {
   static async getStudentDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.id;
-      const data = await DashboardService.getStudentDashboard(userId);
+      const isCallerAdmin = req.user!.role === 'ADMIN';
+      const requestedUserId = req.query.userId as string | undefined;
+
+      // Admins can inspect any student's dashboard; students are strictly locked to their own ID
+      const targetUserId = isCallerAdmin && requestedUserId ? requestedUserId : req.user!.id;
+
+      const data = await DashboardService.getStudentDashboard(targetUserId);
       sendSuccess(res, data, 'Dashboard Mahasiswa');
     } catch (error) {
       next(error);
